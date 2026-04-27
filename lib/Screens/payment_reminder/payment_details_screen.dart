@@ -2,24 +2,34 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter_widgets/controller/payment_controller.dart';
+import 'package:flutter_widgets/Models/payment_models.dart';
+import 'package:flutter_widgets/screens/payment_reminder/widgets/add_payment_dialog.dart';
 
 class PaymentDetailsScreen extends StatelessWidget {
-  PaymentDetailsScreen({super.key});
+  final PaymentModel payment;
+  PaymentDetailsScreen({super.key, required this.payment});
 
-  final PaymentController controller = Get.put(PaymentController());
+  final PaymentController controller = Get.find<PaymentController>();
 
   @override
   Widget build(BuildContext context) {
+    // Calculate progress (Paid / Total)
+    double total = double.tryParse(payment.totalAmount.replaceAll('\$', '').replaceAll(',', '')) ?? 0.0;
+    double due = double.tryParse(payment.amount.replaceAll('\$', '').replaceAll(',', '')) ?? 0.0;
+    double paid = total - due;
+    double progress = (total > 0) ? (paid / total).clamp(0.0, 1.0) : 0.0;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
       appBar: AppBar(
         backgroundColor: const Color(0xFF7B39FD),
         elevation: 0,
         centerTitle: true,
-        leadingWidth: 68,
+        leadingWidth: 56,
         leading: Padding(
-          padding: const EdgeInsets.only(left: 20, top: 8, bottom: 8),
+          padding: const EdgeInsets.only(left: 16, top: 10, bottom: 10),
           child: InkWell(
             onTap: () => Get.back(),
             customBorder: const CircleBorder(),
@@ -32,7 +42,7 @@ class PaymentDetailsScreen extends StatelessWidget {
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.white.withOpacity(0.3)),
                   ),
-                  child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+                  child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 16),
                 ),
               ),
             ),
@@ -48,7 +58,7 @@ class PaymentDetailsScreen extends StatelessWidget {
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 50),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -60,78 +70,66 @@ class PaymentDetailsScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF7B39FD).withOpacity(0.04),
+                    color: Colors.black.withOpacity(0.03),
                     blurRadius: 15,
                     offset: const Offset(0, 8),
                   ),
                 ],
               ),
-              child: Row(
+              child: Column(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF7B39FD).withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Text(
-                      "JD",
-                      style: TextStyle(
-                        color: Color(0xFF7B39FD),
-                        fontWeight: FontWeight.w700,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          controller.userName,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 18,
-                            color: Color(0xFF111827),
+                  Row(
+                    children: [
+                      Container(
+                        height: 52,
+                        width: 52,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF7B39FD), Color(0xFF9333EA)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          controller.paymentType,
-                          style: const TextStyle(
-                            color: Color(0xFF6B7280),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF10B981).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Text(
-                      "Active",
-                      style: TextStyle(
-                        color: Color(0xFF059669),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
+                        child: const Icon(Icons.person_rounded, color: Colors.white, size: 28),
                       ),
-                    ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              payment.name,
+                              style: const TextStyle(
+                                color: Color(0xFF111827),
+                                fontWeight: FontWeight.w800,
+                                fontSize: 18,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              payment.mobileNo,
+                              style: const TextStyle(
+                                color: Color(0xFF6B7280),
+                                fontWeight: FontWeight.w500,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 12),
                 ],
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
             // Summary Card
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [
@@ -141,105 +139,137 @@ class PaymentDetailsScreen extends StatelessWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF7B39FD).withOpacity(0.2),
-                    blurRadius: 20,
-                    offset: const Offset(0, 12),
+                    color: const Color(0xFF7B39FD).withOpacity(0.12),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
                   ),
                 ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        "Payment Summary",
+                      const Text(
+                        "Summary",
                         style: TextStyle(
                           color: Colors.white70,
                           fontWeight: FontWeight.w600,
-                          fontSize: 14,
+                          fontSize: 11,
                         ),
                       ),
-                      Icon(Icons.info_outline_rounded, color: Colors.white70, size: 20),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          payment.repeat,
+                          style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w700),
+                        ),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    "Total Amount",
-                    style: TextStyle(color: Colors.white60, fontSize: 13),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "Total Amount",
+                            style: TextStyle(color: Colors.white60, fontSize: 10),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            payment.totalAmount.replaceAll('\$', ''),
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          const Text(
+                            "Reminder Date",
+                            style: TextStyle(color: Colors.white60, fontSize: 10),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            payment.time,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "${controller.totalAmount.toInt()}",
-                    style: const TextStyle(
-                      fontSize: 36,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                      letterSpacing: -1,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Obx(
-                    () => Column(
-                      children: [
-                        Stack(
-                          children: [
-                            Container(
-                              height: 10,
-                              width: double.infinity,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
+                  const SizedBox(height: 16),
+                  Column(
+                    children: [
+                      Stack(
+                        children: [
+                          Container(
+                            height: 6,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(10),
                             ),
-                            AnimatedContainer(
-                              duration: const Duration(milliseconds: 800),
-                              height: 10,
-                              width: MediaQuery.of(context).size.width *
-                                  0.75 *
-                                  controller.completionPercentage,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(10),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.white.withOpacity(0.3),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 0),
-                                  ),
-                                ],
-                              ),
+                          ),
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              return AnimatedContainer(
+                                duration: const Duration(milliseconds: 800),
+                                height: 6,
+                                width: constraints.maxWidth * progress,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              );
+                            }
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            "${(progress * 100).toInt()}% Paid • ${paid.toInt()}/${total.toInt()}",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              "${(controller.completionPercentage * 100).toInt()}% Completed",
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
+                          ),
+                          Text(
+                            "Due: ${payment.amount.replaceAll('\$', '')}",
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
                             ),
-                            Text(
-                              "${controller.paidAmount.toInt()} / ${controller.totalAmount.toInt()}",
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -247,26 +277,45 @@ class PaymentDetailsScreen extends StatelessWidget {
 
             const SizedBox(height: 24),
 
-            // Detailed Breakdown
             Row(
               children: [
-                Obx(() => _buildInfoBox(
-                  "Received",
-                  "${controller.paidAmount.toInt()}",
-                  const Color(0xFF10B981),
-                  Icons.arrow_downward_rounded,
-                )),
-                const SizedBox(width: 16),
-                Obx(() => _buildInfoBox(
-                  "Remaining",
-                  "${controller.remainingAmount.toInt()}",
-                  const Color(0xFFF59E0B),
-                  Icons.pending_actions_rounded,
-                )),
+                _buildInfoBox("Paid", "\$${paid.toInt()}", const Color(0xFF10B981), Icons.check_circle_rounded),
+                const SizedBox(width: 12),
+                _buildInfoBox("Due", payment.amount, const Color(0xFFEF4444), Icons.info_rounded),
               ],
             ),
 
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
+
+            // Notes Section
+            if (payment.note.isNotEmpty) ...[
+              const Text(
+                "Notes",
+                style: TextStyle(
+                  color: Color(0xFF111827),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 18,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF3F4F6),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  payment.note,
+                  style: const TextStyle(
+                    color: Color(0xFF4B5563),
+                    fontSize: 14,
+                    height: 1.5,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
+            ],
 
             const Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -279,127 +328,121 @@ class PaymentDetailsScreen extends StatelessWidget {
                     fontSize: 18,
                   ),
                 ),
-                Text(
-                  "View All",
-                  style: TextStyle(
-                    color: Color(0xFF7B39FD),
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
               ],
             ),
             const SizedBox(height: 16),
 
             Obx(
-              () => ListView.separated(
-                shrinkWrap: true,
-                padding: EdgeInsets.zero,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: controller.paymentHistory.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 14),
-                itemBuilder: (context, index) {
-                  final item = controller.paymentHistory[index];
-                  return Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: Colors.grey.shade100),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.02),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
+              () => controller.paymentHistory.isEmpty
+                  ? const Center(child: Text("No history available"))
+                  : ListView.separated(
+                    shrinkWrap: true,
+                    padding: EdgeInsets.zero,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: controller.paymentHistory.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final item = controller.paymentHistory[index];
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey.shade100, width: 1.5),
                         ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF3F4F6),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(Icons.calendar_today_rounded, size: 18, color: Color(0xFF4B5563)),
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF10B981).withOpacity(0.1),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.done_all_rounded, size: 18, color: Color(0xFF10B981)),
+                                ),
+                                const SizedBox(width: 16),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      item.date,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 14,
+                                        color: Color(0xFF111827),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      item.day,
+                                      style: const TextStyle(
+                                        color: Color(0xFF6B7280),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 14),
                             Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Text(
-                                  item.date,
+                                  "${item.amount.toInt()}",
                                   style: const TextStyle(
-                                    fontWeight: FontWeight.w700,
+                                    fontWeight: FontWeight.w800,
                                     fontSize: 15,
                                     color: Color(0xFF111827),
                                   ),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  item.day,
-                                  style: const TextStyle(
-                                    color: Color(0xFF6B7280),
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
+                                const SizedBox(height: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF10B981).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Text(
+                                    "Success",
+                                    style: TextStyle(
+                                      color: Color(0xFF059669),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
                           ],
                         ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              "${item.amount.toInt()}",
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 16,
-                                color: Color(0xFF111827),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            const Text(
-                              "Completed",
-                              style: TextStyle(
-                                color: Color(0xFF10B981),
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+                      );
+                    },
+                  ),
             ),
           ],
         ),
       ),
       bottomNavigationBar: Container(
-        padding: EdgeInsets.fromLTRB(20, 10, 20, MediaQuery.of(context).padding.bottom + 10),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
         decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.05),
-              blurRadius: 20,
+              blurRadius: 10,
               offset: const Offset(0, -5),
             ),
           ],
         ),
         child: ElevatedButton(
-          onPressed: () => _showAddPaymentDialog(context),
+          onPressed: () => showAddPaymentDialog(context, controller),
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF7B39FD),
-            minimumSize: const Size(double.infinity, 54),
+            padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
@@ -409,196 +452,57 @@ class PaymentDetailsScreen extends StatelessWidget {
             "Add New Payment",
             style: TextStyle(
               color: Colors.white,
-              fontSize: 16,
               fontWeight: FontWeight.w700,
+              fontSize: 16,
             ),
           ),
         ),
       ),
     );
-  }
-
-  void _showAddPaymentDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-        child: AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Center(
-                child: Text(
-                  "Add Payment",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF111827)),
-                ),
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                "Amount",
-                style: TextStyle(color: Color(0xFF4B5563), fontSize: 13, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: controller.amountController,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                style: const TextStyle(fontWeight: FontWeight.w600),
-                decoration: InputDecoration(
-                  hintText: "0.00",
-                  prefixIcon: const Icon(Icons.payments_outlined, size: 20),
-                  filled: true,
-                  fillColor: const Color(0xFFF9FAFB),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                "Payment Date",
-                style: TextStyle(color: Color(0xFF4B5563), fontSize: 13, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: controller.dateController,
-                onTap: () async {
-                  DateTime? pickedDate = await showDatePicker(
-                    context: context,
-                    initialDate: DateTime.now(),
-                    firstDate: DateTime(2000),
-                    lastDate: DateTime(2101),
-                    builder: (context, child) {
-                      return Theme(
-                        data: Theme.of(context).copyWith(
-                          colorScheme: const ColorScheme.light(
-                            primary: Color(0xFF7B39FD),
-                          ),
-                        ),
-                        child: child!,
-                      );
-                    },
-                  );
-                  if (pickedDate != null) {
-                    controller.dateController.text =
-                        "${_getMonthName(pickedDate.month)} ${pickedDate.day}, ${pickedDate.year}";
-                  }
-                },
-                readOnly: true,
-                style: const TextStyle(fontWeight: FontWeight.w600),
-                decoration: InputDecoration(
-                  hintText: "Select Date",
-                  filled: true,
-                  fillColor: const Color(0xFFF9FAFB),
-                  prefixIcon: const Icon(Icons.calendar_today_rounded, size: 18),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                ),
-              ),
-              const SizedBox(height: 32),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextButton(
-                      onPressed: () => Get.back(),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      child: const Text(
-                        "Cancel",
-                        style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        controller.addHistoryPaymentFromDialog();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF7B39FD),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: const Text(
-                        "Add",
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  String _getMonthName(int month) {
-    const months = [
-      "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December",
-    ];
-    return months[month - 1];
   }
 
   Widget _buildInfoBox(String title, String value, Color color, IconData icon) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: color.withOpacity(0.15)),
-          boxShadow: [
-            BoxShadow(
-              color: color.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Row(
-              children: [
-                Icon(icon, size: 14, color: color),
-                const SizedBox(width: 6),
-                Text(
-                  title,
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 16, color: color),
             ),
-            const SizedBox(height: 10),
-            Text(
-              value,
-              style: const TextStyle(
-                color: Color(0xFF111827),
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: Colors.grey.shade500,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    value.replaceAll('\$', ''),
+                    style: const TextStyle(
+                      color: Color(0xFF111827),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

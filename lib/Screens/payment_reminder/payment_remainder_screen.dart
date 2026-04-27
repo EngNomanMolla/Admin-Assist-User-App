@@ -1,9 +1,13 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_widgets/screens/payment_reminder/payment_details_screen.dart';
+import 'package:flutter_widgets/screens/payment_reminder/create_reminder_screen.dart';
 import 'package:flutter_widgets/controller/payment_controller.dart';
 import 'package:flutter_widgets/Models/payment_models.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
+
+import 'package:flutter_widgets/screens/payment_reminder/widgets/add_payment_dialog.dart';
 
 class PaymentRemainderScreen extends StatefulWidget {
   const PaymentRemainderScreen({super.key});
@@ -114,14 +118,14 @@ class _PaymentRemainderScreenState extends State<PaymentRemainderScreen> {
         },
       ),
       floatingActionButton: SizedBox(
-        width: 48,
-        height: 48,
+        width: 52,
+        height: 52,
         child: FloatingActionButton(
-          onPressed: () => Get.to(() => PaymentDetailsScreen()),
+          onPressed: () => Get.to(() => CreateReminderScreen()),
           backgroundColor: const Color(0xFF7B39FD),
-          elevation: 4,
+          elevation: 6,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: const Icon(Icons.add_rounded, color: Colors.white, size: 26),
+          child: const Icon(Icons.add_rounded, color: Colors.white, size: 30),
         ),
       ),
     );
@@ -155,7 +159,7 @@ class _PaymentRemainderScreenState extends State<PaymentRemainderScreen> {
               color: const Color(0xFF7B39FD).withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.receipt_long_rounded, size: 48, color: Color(0xFF7B39FD)),
+            child: const Icon(Icons.receipt_long_rounded, size: 48, color: const Color(0xFF7B39FD)),
           ),
           const SizedBox(height: 16),
           const Text(
@@ -163,7 +167,7 @@ class _PaymentRemainderScreenState extends State<PaymentRemainderScreen> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF374151),
+              color: const Color(0xFF374151),
             ),
           ),
           const SizedBox(height: 8),
@@ -171,7 +175,7 @@ class _PaymentRemainderScreenState extends State<PaymentRemainderScreen> {
             "You are all caught up for now.",
             style: TextStyle(
               fontSize: 14,
-              color: Color(0xFF6B7280),
+              color: const Color(0xFF6B7280),
             ),
           ),
         ],
@@ -232,7 +236,7 @@ class PaymentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => Get.to(() => PaymentDetailsScreen()),
+      onTap: () => Get.to(() => PaymentDetailsScreen(payment: payment)),
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(16),
@@ -264,7 +268,7 @@ class PaymentCard extends StatelessWidget {
                           color: const Color(0xFF7B39FD).withOpacity(0.1),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.person_rounded, color: Color(0xFF7B39FD), size: 20),
+                        child: const Icon(Icons.person_rounded, color: const Color(0xFF7B39FD), size: 20),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -279,7 +283,7 @@ class PaymentCard extends StatelessWidget {
                                     style: const TextStyle(
                                       fontWeight: FontWeight.w700,
                                       fontSize: 15,
-                                      color: Color(0xFF111827),
+                                      color: const Color(0xFF111827),
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -291,11 +295,11 @@ class PaymentCard extends StatelessWidget {
                             const SizedBox(height: 2),
                             Row(
                               children: [
-                                const Icon(Icons.access_time_rounded, size: 10, color: Color(0xFF6B7280)),
+                                const Icon(Icons.access_time_rounded, size: 10, color: const Color(0xFF6B7280)),
                                 const SizedBox(width: 4),
                                 Text(
                                   payment.time,
-                                  style: const TextStyle(color: Color(0xFF6B7280), fontSize: 11, fontWeight: FontWeight.w500),
+                                  style: const TextStyle(color: const Color(0xFF6B7280), fontSize: 11, fontWeight: FontWeight.w500),
                                 ),
                               ],
                             ),
@@ -306,7 +310,7 @@ class PaymentCard extends StatelessWidget {
                   ),
                 ),
                 PopupMenuButton(
-                  icon: const Icon(Icons.more_horiz_rounded, color: Color(0xFF9CA3AF), size: 20),
+                  icon: const Icon(Icons.more_horiz_rounded, color: const Color(0xFF9CA3AF), size: 20),
                   padding: EdgeInsets.zero,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   onSelected: (value) {
@@ -317,9 +321,9 @@ class PaymentCard extends StatelessWidget {
                       value: 'edit',
                       child: Row(
                         children: [
-                          Icon(Icons.edit_outlined, size: 16, color: Color(0xFF4B5563)),
+                          Icon(Icons.edit_outlined, size: 16, color: const Color(0xFF4B5563)),
                           SizedBox(width: 10),
-                          Text("Edit", style: TextStyle(color: Color(0xFF4B5563), fontSize: 13)),
+                          Text("Edit", style: TextStyle(color: const Color(0xFF4B5563), fontSize: 13)),
                         ],
                       ),
                     ),
@@ -358,8 +362,8 @@ class PaymentCard extends StatelessWidget {
                         ),
                         child: Row(
                           children: [
-                            const Text("Total: ", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF3B82F6))),
-                            Text(payment.totalAmount.replaceAll('\$', ''), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF3B82F6))),
+                            const Text("Total: ", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF3B82F6))),
+                            Text(payment.totalAmount.replaceAll('\$', ''), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF3B82F6))),
                           ],
                         ),
                       ),
@@ -372,28 +376,32 @@ class PaymentCard extends StatelessWidget {
                         ),
                         child: Row(
                           children: [
-                            const Text("Due: ", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF7B39FD))),
-                            Text(payment.amount.replaceAll('\$', ''), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF7B39FD))),
+                            const Text("Due: ", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF7B39FD))),
+                            Text(payment.amount.replaceAll('\$', ''), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF7B39FD))),
                           ],
                         ),
                       ),
                     ],
                   ),
-                  Container(
-                    height: 32,
-                    width: 32,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.04),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        )
-                      ]
+                  InkWell(
+                    onTap: () => showAddPaymentDialog(context, Get.find<PaymentController>()),
+                    borderRadius: BorderRadius.circular(32),
+                    child: Container(
+                      height: 32,
+                      width: 32,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.04),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          )
+                        ]
+                      ),
+                      child: const Icon(Icons.add_rounded, color: const Color(0xFF111827), size: 18),
                     ),
-                    child: const Icon(Icons.add_rounded, color: Color(0xFF111827), size: 18),
                   ),
                 ],
               ),

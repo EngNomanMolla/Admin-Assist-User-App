@@ -9,37 +9,48 @@ class PaymentController extends GetxController {
   var paymentList = <PaymentModel>[
     PaymentModel(
       name: "Bipul Sarkar",
+      mobileNo: "01710000001",
       time: "25 Jul • 4:00 PM",
       amount: "\$5000",
       totalAmount: "\$8000",
+      repeat: "Monthly",
       status: "today",
+      note: "Client requested an extension on the next payment. Please follow up on Monday regarding the remaining balance.",
     ),
     PaymentModel(
       name: "Anik Ahmed",
+      mobileNo: "01710000002",
       time: "25 Jul • 5:30 PM",
       amount: "\$3000",
       totalAmount: "\$5000",
+      repeat: "Weekly",
       status: "today",
     ),
     PaymentModel(
       name: "Sujon Ali",
+      mobileNo: "01710000003",
       time: "26 Jul • 10:00 AM",
       amount: "\$1200",
       totalAmount: "\$4000",
+      repeat: "Monthly",
       status: "today",
     ),
     PaymentModel(
       name: "Bipul Sarkar",
+      mobileNo: "01710000001",
       time: "25 Jul • 7:00 PM",
       amount: "\$4500",
       totalAmount: "\$9000",
+      repeat: "Monthly",
       status: "today",
     ),
     PaymentModel(
       name: "Tanvir Hossain",
+      mobileNo: "01710000004",
       time: "27 Jul • 12:00 PM",
       amount: "\$8000",
       totalAmount: "\$15000",
+      repeat: "Yearly",
       status: "expire",
     ),
   ].obs;
@@ -74,9 +85,12 @@ class PaymentController extends GetxController {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController mobileController = TextEditingController();
   final TextEditingController dueAmountController = TextEditingController();
+  final TextEditingController totalAmountController = TextEditingController();
   final TextEditingController dateTimeController = TextEditingController();
-  final TextEditingController repeatController = TextEditingController();
   final TextEditingController noteController = TextEditingController();
+  
+  var selectedRepeat = "Monthly".obs;
+  final List<String> repeatOptions = ["Weekly", "Monthly", "Half Yearly", "Yearly"];
 
   var paymentHistory = <PaymentHistoryModel>[
     PaymentHistoryModel(
@@ -146,20 +160,23 @@ class PaymentController extends GetxController {
         0,
         PaymentModel(
           name: nameController.text,
+          mobileNo: mobileController.text,
           time: dateTimeController.text.isEmpty
-              ? "Just Now"
+              ? DateFormat('d MMM yy • hh:mm a').format(DateTime.now())
               : dateTimeController.text,
           amount: "\$${dueAmountController.text}",
-          totalAmount: "\$${dueAmountController.text}", // Using due as total for new entries
+          totalAmount: "\$${totalAmountController.text.isEmpty ? dueAmountController.text : totalAmountController.text}",
+          repeat: selectedRepeat.value,
           status: "today",
+          note: noteController.text,
         ),
       );
 
       nameController.clear();
       mobileController.clear();
       dueAmountController.clear();
+      totalAmountController.clear();
       dateTimeController.clear();
-      repeatController.clear();
       noteController.clear();
 
       Get.back();
