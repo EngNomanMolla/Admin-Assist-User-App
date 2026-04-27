@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_widgets/Screens/navigation%20button.dart';
+import 'package:flutter_widgets/screens/navigation%20button.dart';
 import 'package:get/get.dart';
 
 class AuthController extends GetxController {

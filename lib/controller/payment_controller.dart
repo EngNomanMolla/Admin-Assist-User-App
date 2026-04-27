@@ -11,30 +11,35 @@ class PaymentController extends GetxController {
       name: "Bipul Sarkar",
       time: "25 Jul • 4:00 PM",
       amount: "\$5000",
+      totalAmount: "\$8000",
       status: "today",
     ),
     PaymentModel(
       name: "Anik Ahmed",
       time: "25 Jul • 5:30 PM",
       amount: "\$3000",
+      totalAmount: "\$5000",
       status: "today",
     ),
     PaymentModel(
       name: "Sujon Ali",
       time: "26 Jul • 10:00 AM",
       amount: "\$1200",
+      totalAmount: "\$4000",
       status: "today",
     ),
     PaymentModel(
       name: "Bipul Sarkar",
       time: "25 Jul • 7:00 PM",
       amount: "\$4500",
+      totalAmount: "\$9000",
       status: "today",
     ),
     PaymentModel(
       name: "Tanvir Hossain",
       time: "27 Jul • 12:00 PM",
       amount: "\$8000",
+      totalAmount: "\$15000",
       status: "expire",
     ),
   ].obs;
@@ -145,6 +150,7 @@ class PaymentController extends GetxController {
               ? "Just Now"
               : dateTimeController.text,
           amount: "\$${dueAmountController.text}",
+          totalAmount: "\$${dueAmountController.text}", // Using due as total for new entries
           status: "today",
         ),
       );
