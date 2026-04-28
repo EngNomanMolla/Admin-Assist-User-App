@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:flutter_widgets/routes/app_routes.dart';
 import 'package:flutter_widgets/screens/login_screens/create_new_password.dart';
 import 'package:flutter_widgets/screens/login_screens/forgot_password_screen.dart';
@@ -8,7 +9,13 @@ import 'package:flutter_widgets/screens/login_screens/signup_screen.dart';
 import 'package:flutter_widgets/screens/navigation%20button.dart';
 
 class AppPages {
-  static const INITIAL = AppRoutes.NAVIGATION;
+  static String get INITIAL {
+    final storage = GetStorage();
+    if (storage.read('isLoggedIn') == true) {
+      return AppRoutes.NAVIGATION;
+    }
+    return AppRoutes.LOGIN;
+  }
 
   static final routes = [
     GetPage(

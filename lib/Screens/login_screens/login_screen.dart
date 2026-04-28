@@ -128,7 +128,7 @@ class LoginScreen extends StatelessWidget {
                       ),
                       child: ElevatedButton(
                         onPressed: () {
-                          Get.offAllNamed('/navigation');
+                          controller.login();
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF7B39FD),
@@ -137,13 +137,26 @@ class LoginScreen extends StatelessWidget {
                           ),
                           elevation: 0,
                         ),
-                        child: const Text(
-                          "Sign in",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                          ),
+                        child: Obx(
+                          () => controller.isLoading.value
+                              ? const Center(
+                                  child: SizedBox(
+                                    height: 24,
+                                    width: 24,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2.5,
+                                    ),
+                                  ),
+                                )
+                              : const Text(
+                                  "Sign in",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
                         ),
                       ),
                     ),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_widgets/screens/calculator_screen/calculator_screen.dart';
+import 'package:flutter_widgets/screens/profile/profile_screen.dart';
 import 'home_screen.dart';
 import 'package:get/get.dart';
 
@@ -14,9 +16,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
   final List<Widget> _pages = [
     const HomeScreen(),
-    const Center(child: Text("Calculator")),
+    CalculatorScreen(),
     const Center(child: Text("Notification")),
-    const Center(child: Text("Profile")),
+    const ProfileScreen(),
   ];
 
   @override

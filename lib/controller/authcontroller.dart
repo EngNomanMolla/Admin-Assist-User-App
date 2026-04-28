@@ -1,8 +1,15 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_widgets/provider/auth_provider.dart';
+import 'package:flutter_widgets/Screens/login_screens/email_verification_screen.dart';
 import 'package:flutter_widgets/screens/navigation%20button.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 
 class AuthController extends GetxController {
+  final AuthProvider _authProvider = AuthProvider();
+  final GetStorage _storage = GetStorage();
+  
   final mobileController = TextEditingController();
   final loginPasswordController = TextEditingController();
 
@@ -24,6 +31,18 @@ class AuthController extends GetxController {
 
   var isNewPassVisible = false.obs;
   var isConfirmPassVisible = false.obs;
+  var isLoading = false.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    // Check if Remember Me was checked previously
+    isRememberMeChecked.value = _storage.read('rememberMe') ?? false;
+    if (isRememberMeChecked.value) {
+      emailController.text = _storage.read('savedEmail') ?? '';
+      loginPasswordController.text = _storage.read('savedPassword') ?? '';
+    }
+  }
 
   void togglePasswordVisibility() {
     isPasswordVisible.value = !isPasswordVisible.value;
@@ -33,14 +52,14 @@ class AuthController extends GetxController {
     isRememberMeChecked.value = value ?? false;
   }
 
-  void login() {
-    String mobile = mobileController.text.trim();
+  void login() async {
+    String email = emailController.text.trim();
     String password = loginPasswordController.text.trim();
 
-    if (mobile.isEmpty || password.isEmpty) {
+    if (email.isEmpty || password.isEmpty) {
       Get.snackbar(
         "Error",
-        "Please enter both mobile and password",
+        "Please enter both email and password",
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red.withOpacity(0.1),
         colorText: Colors.red,
@@ -48,14 +67,57 @@ class AuthController extends GetxController {
       return;
     }
 
-    print("Logging in with: $mobile");
+    try {
+      isLoading.value = true;
+      // No Get.dialog here, we use in-button loading in the UI
 
-    Get.offAll(() => const NavigationScreen());
+      final response = await _authProvider.login(email, password);
+      
+      isLoading.value = false;
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        String token = data['token'];
+        
+        // Always save token for the current session's API calls
+        _storage.write('token', token);
+        _storage.write('userData', data['user']);
+        
+        // Save persistent session only if Remember Me is checked
+        if (isRememberMeChecked.value) {
+          _storage.write('isLoggedIn', true);
+          _storage.write('rememberMe', true);
+          _storage.write('savedEmail', email);
+          _storage.write('savedPassword', password);
+        } else {
+          _storage.write('isLoggedIn', false);
+          _storage.write('rememberMe', false);
+          _storage.remove('savedEmail');
+          _storage.remove('savedPassword');
+        }
+        
+        Get.snackbar("Success", "Logged in successfully", snackPosition: SnackPosition.BOTTOM);
+        Get.offAll(() => const NavigationScreen());
+      } else {
+        final error = jsonDecode(response.body);
+        Get.snackbar(
+          "Login Failed",
+          error['message'] ?? "Invalid credentials",
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.withOpacity(0.1),
+          colorText: Colors.red,
+        );
+      }
+    } catch (e) {
+      isLoading.value = false;
+      Get.snackbar("Error", "Something went wrong. Please try again.", snackPosition: SnackPosition.BOTTOM);
+      print("Login Error: $e");
+    }
   }
 
   void signup() {
     print("Signing up user: ${nameController.text}");
-    Get.toNamed('/otp-verification');
+    Get.to(() => const EmailVerificationScreen());
   }
 
   void sendResetLink() {
@@ -76,8 +138,9 @@ class AuthController extends GetxController {
     Get.toNamed('/otp-verification');
   }
 
-  void verifyOTP() {
+  void verifyOTP() async {
     String otp = otpControllers.map((e) => e.text).join();
+    String email = emailController.text.trim();
 
     if (otp.length < 6) {
       Get.snackbar(
@@ -90,8 +153,49 @@ class AuthController extends GetxController {
       return;
     }
 
-    print("Verifying OTP: $otp");
-    Get.toNamed('/reset-password');
+    try {
+      isLoading.value = true;
+      Get.dialog(
+        const Center(child: CircularProgressIndicator(color: Color(0xFF7B39FD))),
+        barrierDismissible: false,
+      );
+
+      final response = await _authProvider.verifyOTP(email, otp);
+      
+      Get.back(); // Close loading dialog
+      isLoading.value = false;
+
+      if (response.statusCode == 200) {
+        Get.snackbar("Success", "Email verified successfully", snackPosition: SnackPosition.BOTTOM);
+        for (var c in otpControllers) {
+          c.clear();
+        }
+        Get.offAll(() => const NavigationScreen());
+      } else {
+        final error = jsonDecode(response.body);
+        Get.snackbar(
+          "Verification Failed",
+          error['message'] ?? "Invalid OTP code",
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.withOpacity(0.1),
+          colorText: Colors.red,
+        );
+      }
+    } catch (e) {
+      if (Get.isDialogOpen!) Get.back();
+      isLoading.value = false;
+      Get.snackbar("Error", "Something went wrong. Please try again.", snackPosition: SnackPosition.BOTTOM);
+      print("Verification Error: $e");
+    }
+  }
+
+  void resendCode() {
+    print("Resending OTP code...");
+    Get.snackbar("Success", "OTP Resent Successfully", snackPosition: SnackPosition.BOTTOM);
+  }
+
+  void continueWithGoogle() {
+    print("Google Auth Tapped");
   }
 
   void resetPassword() {
@@ -120,13 +224,11 @@ class AuthController extends GetxController {
     Get.offAllNamed('/login');
   }
 
-  void resendCode() {
-    print("Resending OTP code...");
-    Get.snackbar("Success", "OTP Resent Successfully");
-  }
-
-  void continueWithGoogle() {
-    print("Google Auth Tapped");
+  void logout() {
+    _storage.write('isLoggedIn', false);
+    _storage.remove('token');
+    _storage.remove('userData');
+    Get.offAllNamed('/login');
   }
 
   @override

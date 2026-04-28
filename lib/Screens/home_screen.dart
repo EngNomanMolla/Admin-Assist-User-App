@@ -1,10 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_widgets/screens/job_circular_screen.dart';
-import 'package:flutter_widgets/screens/mentor_post_screen.dart';
+import 'package:flutter_widgets/screens/career_update/job_circular_screen.dart';
+import 'package:flutter_widgets/screens/mentor_assist_post/mentor_post_screen.dart';
 import 'package:flutter_widgets/screens/payment_reminder/payment_remainder_screen.dart';
 import 'package:flutter_widgets/screens/targetbox_product/targetbox_product.dart';
 import 'package:flutter_widgets/screens/todo_list_screen/todo_list_screen.dart';
+import 'package:flutter_widgets/screens/calculator_screen/calculator_screen.dart';
 import 'package:get/get.dart';
 import 'package:marquee/marquee.dart';
 
@@ -134,8 +135,8 @@ class HomeScreen extends StatelessWidget {
         'color': const Color(0xFF10B981),
       },
       {
-        'title': 'Add Mentor\nPost',
-        'icon': Icons.add_rounded,
+        'title': 'Mentor Assist\nPost',
+        'icon': Icons.support_agent_rounded,
         'color': const Color(0xFF6366F1),
       },
     ];
@@ -158,6 +159,8 @@ class HomeScreen extends StatelessWidget {
               Get.to(() => PaymentRemainderScreen());
             } else if (index == 1) {
               Get.to(() => const TodoListScreen());
+            } else if (index == 2) {
+              Get.to(() => CalculatorScreen());
             } else if (index == 3) {
               Get.to(() => ProductScreen());
             } else if (index == 4) {
