@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 
 class TodoController extends GetxController {
   int selectedTab = 0;
-  final List<String> categories = ['Today', 'Expire', 'Next Up', 'On going'];
+  final List<String> categories = ['Today', 'Expire', 'Next Up', 'Ongoing'];
 
   List<Map<String, dynamic>> todoList = [
     {
@@ -46,14 +46,38 @@ class TodoController extends GetxController {
   TextEditingController titleController = TextEditingController();
   TextEditingController notesController = TextEditingController();
   TextEditingController dateController = TextEditingController();
+  TextEditingController searchController = TextEditingController();
 
   String selectedRepeat = "Once";
   List<String> repeatOptions = ["Once", "Daily", "Weekly", "Monthly"];
 
+  bool isSearching = false;
+  String searchQuery = "";
+
   List<Map<String, dynamic>> get filteredTodoList {
-    return todoList
-        .where((e) => e['status'] == categories[selectedTab])
-        .toList();
+    var list = todoList.where((e) => e['status'] == categories[selectedTab]).toList();
+    if (searchQuery.isNotEmpty) {
+      list = list.where((e) {
+        final title = e['title'].toString().toLowerCase();
+        final query = searchQuery.toLowerCase();
+        return title.contains(query);
+      }).toList();
+    }
+    return list;
+  }
+
+  void toggleSearch() {
+    isSearching = !isSearching;
+    if (!isSearching) {
+      searchQuery = "";
+      searchController.clear();
+    }
+    update();
+  }
+
+  void updateSearchQuery(String query) {
+    searchQuery = query;
+    update();
   }
 
   void changeTab(int index) {
