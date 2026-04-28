@@ -2,6 +2,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_widgets/controller/mentor_post_controller.dart';
 import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:shimmer/shimmer.dart';
 
 class MentorPostScreen extends StatelessWidget {
   const MentorPostScreen({super.key});
@@ -50,16 +52,24 @@ class MentorPostScreen extends StatelessWidget {
         builder: (controller) {
           return Obx(() {
             if (controller.isLoading.value && controller.postList.isEmpty) {
-              return const Center(
-                child: CircularProgressIndicator(color: Color(0xFF7B39FD)),
-              );
+              return _buildShimmerList();
             }
 
             if (controller.postList.isEmpty) {
-              return const Center(
-                child: Text(
-                  "No posts available",
-                  style: TextStyle(color: Color(0xFF6B7280), fontSize: 16),
+              return RefreshIndicator(
+                onRefresh: () => controller.fetchPosts(),
+                color: const Color(0xFF7B39FD),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.7,
+                    child: const Center(
+                      child: Text(
+                        "No posts available",
+                        style: TextStyle(color: Color(0xFF6B7280), fontSize: 16),
+                      ),
+                    ),
+                  ),
                 ),
               );
             }
@@ -83,6 +93,41 @@ class MentorPostScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildShimmerList() {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      itemCount: 5,
+      itemBuilder: (context, index) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 20),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.grey.shade100),
+          ),
+          child: Shimmer.fromColors(
+            baseColor: Colors.grey[300]!,
+            highlightColor: Colors.grey[100]!,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(width: 100, height: 16, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4))),
+                const SizedBox(height: 16),
+                Container(width: double.infinity, height: 24, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4))),
+                const SizedBox(height: 8),
+                Container(width: double.infinity, height: 16, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4))),
+                const SizedBox(height: 4),
+                Container(width: 200, height: 16, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4))),
+                const SizedBox(height: 20),
+                Container(width: double.infinity, height: 180, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16))),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
 class MentorPostCard extends StatefulWidget {
@@ -96,6 +141,13 @@ class MentorPostCard extends StatefulWidget {
 
 class _MentorPostCardState extends State<MentorPostCard> {
   bool _isExpanded = false;
+  
+  Future<void> _launchURL(String url) async {
+    final Uri uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      Get.snackbar("Error", "Could not launch video link");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -265,58 +317,61 @@ class _MentorPostCardState extends State<MentorPostCard> {
             ),
           ],
 
-          if (post['type'] == 'video') ...[
+          if (post['type'] == 'video' && post['videoUrl'] != null) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Container(
-                      height: 180,
-                      width: double.infinity,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFF3F4F6),
-                        image: DecorationImage(
-                          image: AssetImage('assets/images/postpic.png'),
-                          fit: BoxFit.cover,
-                          opacity: 0.6,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
+              child: GestureDetector(
+                onTap: () => _launchURL(post['videoUrl']),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Container(
+                        height: 180,
+                        width: double.infinity,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFF3F4F6),
+                          image: DecorationImage(
+                            image: AssetImage('assets/images/postpic.png'),
+                            fit: BoxFit.cover,
+                            opacity: 0.6,
                           ),
-                        ],
+                        ),
                       ),
-                      child: const Icon(Icons.play_arrow_rounded, color: Color(0xFF7B39FD), size: 28),
-                    ),
-                    Positioned(
-                      bottom: 12,
-                      right: 12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      Container(
+                        width: 50,
+                        height: 50,
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.6),
-                          borderRadius: BorderRadius.circular(6),
+                          color: Colors.white.withOpacity(0.9),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                        child: const Text(
-                          "VIDEO",
-                          style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        child: const Icon(Icons.play_arrow_rounded, color: Color(0xFF7B39FD), size: 28),
+                      ),
+                      Positioned(
+                        bottom: 12,
+                        right: 12,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.6),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            "VIDEO",
+                            style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

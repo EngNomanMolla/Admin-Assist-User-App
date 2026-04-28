@@ -1,39 +1,35 @@
+import 'dart:convert';
+import 'package:flutter_widgets/provider/job_provider.dart';
 import 'package:get/get.dart';
 
 class JobController extends GetxController {
-  var jobList = <Map<String, dynamic>>[
-    {
-      "id": 9,
-      "organization_name": "Resource Integration Center",
-      "post_title": "Senior Flutter Developer",
-      "required_education": "BSc in CSE",
-      "vacancy": 5,
-      "deadline": "2026-04-26T00:00:00.000000Z",
-      "job_description": "We are looking for an experienced Flutter developer to join our team and build cross-platform mobile applications. You should have deep knowledge of GetX, animations, and premium UI designs. Excellent problem-solving skills are required.",
-      "application_link": "https://example.com/apply",
-      "status": "active"
-    },
-    {
-      "id": 10,
-      "organization_name": "Tech Solutions Ltd.",
-      "post_title": "Backend Engineer",
-      "required_education": "MSc in CS",
-      "vacancy": 2,
-      "deadline": "2026-05-10T00:00:00.000000Z",
-      "job_description": "Join our backend team to scale our microservices. Requirements include Node.js, PostgreSQL, and AWS experience. You will be responsible for maintaining high availability and optimizing query performance.",
-      "application_link": null,
-      "status": "active"
-    },
-    {
-      "id": 11,
-      "organization_name": "Creative Design Agency",
-      "post_title": "UI/UX Designer",
-      "required_education": "Bachelor of Arts",
-      "vacancy": 1,
-      "deadline": "2026-06-01T00:00:00.000000Z",
-      "job_description": "Design stunning user interfaces for our global clients. Figma proficiency is a must. You will work closely with the development team to ensure pixel-perfect implementation of your designs.",
-      "application_link": "https://example.com/apply/uiux",
-      "status": "closed"
+  final JobProvider _jobProvider = JobProvider();
+  
+  var jobList = <Map<String, dynamic>>[].obs;
+  var isLoading = false.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    fetchJobs();
+  }
+
+  Future<void> fetchJobs() async {
+    try {
+      isLoading.value = true;
+      final response = await _jobProvider.getJobCirculars();
+      isLoading.value = false;
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        jobList.value = List<Map<String, dynamic>>.from(data);
+      } else {
+        Get.snackbar("Error", "Failed to fetch job circulars");
+      }
+    } catch (e) {
+      isLoading.value = false;
+      print("Error fetching jobs: $e");
+      Get.snackbar("Error", "Something went wrong while loading jobs");
     }
-  ].obs;
+  }
 }

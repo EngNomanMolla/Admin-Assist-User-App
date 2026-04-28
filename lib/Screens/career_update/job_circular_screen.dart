@@ -4,6 +4,7 @@ import 'package:flutter_widgets/controller/job_controller.dart';
 import 'package:flutter_widgets/screens/career_update/job_details_screen.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:shimmer/shimmer.dart';
 
 class JobCircularScreen extends StatelessWidget {
   const JobCircularScreen({super.key});
@@ -48,16 +49,100 @@ class JobCircularScreen extends StatelessWidget {
           ),
         ),
       ),
-      body: Obx(
-        () => ListView.builder(
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-          physics: const BouncingScrollPhysics(),
-          itemCount: controller.jobList.length,
-          itemBuilder: (context, index) {
-            return _buildJobCard(controller.jobList[index]);
-          },
-        ),
-      ),
+      body: Obx(() {
+        if (controller.isLoading.value && controller.jobList.isEmpty) {
+          return _buildShimmerList();
+        }
+
+        if (controller.jobList.isEmpty) {
+          return RefreshIndicator(
+            onRefresh: () => controller.fetchJobs(),
+            color: const Color(0xFF7B39FD),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: SizedBox(
+                height: MediaQuery.of(context).size.height * 0.7,
+                child: const Center(
+                  child: Text(
+                    "No job circulars available",
+                    style: TextStyle(color: Color(0xFF6B7280), fontSize: 16),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
+        return RefreshIndicator(
+          onRefresh: () => controller.fetchJobs(),
+          color: const Color(0xFF7B39FD),
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+            physics: const AlwaysScrollableScrollPhysics(),
+            itemCount: controller.jobList.length,
+            itemBuilder: (context, index) {
+              return _buildJobCard(controller.jobList[index]);
+            },
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildShimmerList() {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      itemCount: 6,
+      itemBuilder: (context, index) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.grey.shade100),
+          ),
+          child: Shimmer.fromColors(
+            baseColor: Colors.grey[300]!,
+            highlightColor: Colors.grey[100]!,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(width: 150, height: 20, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4))),
+                        const SizedBox(height: 8),
+                        Container(width: 100, height: 14, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4))),
+                      ],
+                    ),
+                    Container(width: 40, height: 40, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Container(width: 80, height: 16, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4))),
+                    const SizedBox(width: 12),
+                    Container(width: 80, height: 16, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4))),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(width: 60, height: 24, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8))),
+                    Container(width: 120, height: 24, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8))),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -74,6 +159,23 @@ class JobCircularScreen extends StatelessWidget {
     }
 
     bool isActive = job['status'] == 'active';
+    
+    // Dynamic check: If deadline has passed today, mark as inactive
+    try {
+      if (deadlineStr.isNotEmpty) {
+        DateTime deadlineDate = DateTime.parse(deadlineStr);
+        DateTime now = DateTime.now();
+        // Create dates without time for accurate "day-after" comparison
+        DateTime today = DateTime(now.year, now.month, now.day);
+        DateTime deadlineOnly = DateTime(deadlineDate.year, deadlineDate.month, deadlineDate.day);
+        
+        if (today.isAfter(deadlineOnly)) {
+          isActive = false;
+        }
+      }
+    } catch (e) {
+      // If parsing fails, stick to the API status
+    }
 
     return GestureDetector(
       onTap: () => Get.to(() => JobDetailsScreen(job: job)),

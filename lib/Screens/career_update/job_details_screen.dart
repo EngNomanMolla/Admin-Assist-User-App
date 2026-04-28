@@ -2,24 +2,41 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class JobDetailsScreen extends StatelessWidget {
   final Map<String, dynamic> job;
 
   const JobDetailsScreen({super.key, required this.job});
 
+  Future<void> _launchURL(String url) async {
+    final Uri uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      Get.snackbar("Error", "Could not launch application link");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     String deadlineStr = job['deadline'] ?? '';
     String formattedDeadline = deadlineStr;
+    bool isActive = job['status'] == 'active';
+    
     try {
       if (deadlineStr.isNotEmpty) {
         DateTime parsedDate = DateTime.parse(deadlineStr);
         formattedDeadline = DateFormat('MMM dd, yyyy').format(parsedDate);
+        
+        // Dynamic check: If deadline has passed today, mark as inactive
+        DateTime now = DateTime.now();
+        DateTime today = DateTime(now.year, now.month, now.day);
+        DateTime deadlineOnly = DateTime(parsedDate.year, parsedDate.month, parsedDate.day);
+
+        if (today.isAfter(deadlineOnly)) {
+          isActive = false;
+        }
       }
     } catch (e) {}
-
-    bool isActive = job['status'] == 'active';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
@@ -182,15 +199,20 @@ class JobDetailsScreen extends StatelessWidget {
           ],
         ),
         child: InkWell(
-          onTap: isActive ? () {
-            // Apply logic here using job['application_link']
-          } : null,
+          onTap: () {
+            String link = job['application_link'] ?? '';
+            if (link.isNotEmpty) {
+              _launchURL(link);
+            } else {
+              Get.snackbar("Notice", "No application link provided for this job.");
+            }
+          },
           borderRadius: BorderRadius.circular(16),
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 18),
             decoration: BoxDecoration(
-              color: isActive ? const Color(0xFF7B39FD) : Colors.grey.shade400,
+              color: isActive ? const Color(0xFF7B39FD) : Colors.grey.shade600,
               borderRadius: BorderRadius.circular(16),
               boxShadow: isActive ? [
                 BoxShadow(
@@ -203,10 +225,10 @@ class JobDetailsScreen extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(isActive ? Icons.send_rounded : Icons.block_rounded, color: Colors.white, size: 20),
+                Icon(isActive ? Icons.send_rounded : Icons.info_outline_rounded, color: Colors.white, size: 20),
                 const SizedBox(width: 10),
                 Text(
-                  isActive ? "Apply Now" : "Applications Closed",
+                  isActive ? "Apply Now" : "Job Closed - View Details",
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,

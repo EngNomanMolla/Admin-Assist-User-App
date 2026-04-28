@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_widgets/controller/home_controller.dart';
 import 'package:flutter_widgets/screens/career_update/job_circular_screen.dart';
 import 'package:flutter_widgets/screens/mentor_assist_post/mentor_post_screen.dart';
 import 'package:flutter_widgets/screens/payment_reminder/payment_remainder_screen.dart';
@@ -8,31 +9,40 @@ import 'package:flutter_widgets/screens/todo_list_screen/todo_list_screen.dart';
 import 'package:flutter_widgets/screens/calculator_screen/calculator_screen.dart';
 import 'package:get/get.dart';
 import 'package:marquee/marquee.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final HomeController controller = Get.put(HomeController());
+
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
       body: SafeArea(
         bottom: false,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 50),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildTopBar(),
-              const SizedBox(height: 12),
-              _buildLiveBox(),
-              const SizedBox(height: 20),
-              const ImageSliderCustom(),
-              const SizedBox(height: 24),
-              _buildSectionHeader('Quick Access'),
-              const SizedBox(height: 16),
-              _buildGridView(context),
-            ],
+        child: RefreshIndicator(
+          onRefresh: () => controller.fetchDashboardData(),
+          color: const Color(0xFF7B39FD),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 50),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildTopBar(),
+                const SizedBox(height: 12),
+                Obx(() => _buildLiveBox(controller)),
+                const SizedBox(height: 20),
+                Obx(() => ImageSliderCustom(banners: controller.banners.value, isLoading: controller.isLoading.value)),
+                const SizedBox(height: 24),
+                _buildSectionHeader('Quick Access'),
+                const SizedBox(height: 16),
+                _buildGridView(context),
+              ],
+            ),
           ),
         ),
       ),
@@ -62,7 +72,26 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildLiveBox() {
+  Widget _buildLiveBox(HomeController controller) {
+    if (controller.isLoading.value && controller.notices.isEmpty) {
+      return Shimmer.fromColors(
+        baseColor: Colors.grey[300]!,
+        highlightColor: Colors.grey[100]!,
+        child: Container(
+          height: 50,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+          ),
+        ),
+      );
+    }
+
+    if (controller.notices.isEmpty) return const SizedBox.shrink();
+
+    String allNotices = controller.notices.map((n) => n['notice_text']).join(' | ');
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -85,7 +114,7 @@ class HomeScreen extends StatelessWidget {
             child: SizedBox(
               height: 20,
               child: Marquee(
-                text: 'Hello designer, how are you today? We have a new upcoming session scheduled for you. Please check your dashboard for more details.',
+                text: allNotices,
                 style: const TextStyle(
                   color: Color(0xFF374151),
                   fontSize: 13,
@@ -214,7 +243,9 @@ class HomeScreen extends StatelessWidget {
 }
 
 class ImageSliderCustom extends StatefulWidget {
-  const ImageSliderCustom({super.key});
+  final List<Map<String, dynamic>> banners;
+  final bool isLoading;
+  const ImageSliderCustom({super.key, required this.banners, required this.isLoading});
 
   @override
   State<ImageSliderCustom> createState() => _ImageSliderCustomState();
@@ -225,28 +256,38 @@ class _ImageSliderCustomState extends State<ImageSliderCustom> {
   int _currentPage = 0;
   Timer? _timer;
 
-  final List<String> sliderImages = [
-    'assets/images/firstpic.png',
-    'assets/images/secondpic.png',
-  ];
-
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 3), (Timer timer) {
-      if (_currentPage < sliderImages.length - 1) {
-        _currentPage++;
-      } else {
-        _currentPage = 0;
-      }
-      if (_controller.hasClients) {
-        _controller.animateToPage(
-          _currentPage,
-          duration: const Duration(milliseconds: 350),
-          curve: Curves.easeIn,
-        );
-      }
-    });
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    if (widget.banners.isNotEmpty) {
+      _timer = Timer.periodic(const Duration(seconds: 4), (Timer timer) {
+        if (_currentPage < widget.banners.length - 1) {
+          _currentPage++;
+        } else {
+          _currentPage = 0;
+        }
+        if (_controller.hasClients) {
+          _controller.animateToPage(
+            _currentPage,
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeInOutCubic,
+          );
+        }
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(ImageSliderCustom oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.banners.length != oldWidget.banners.length) {
+      _startTimer();
+    }
   }
 
   @override
@@ -258,6 +299,23 @@ class _ImageSliderCustomState extends State<ImageSliderCustom> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.isLoading && widget.banners.isEmpty) {
+      return Shimmer.fromColors(
+        baseColor: Colors.grey[300]!,
+        highlightColor: Colors.grey[100]!,
+        child: Container(
+          height: 170,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+          ),
+        ),
+      );
+    }
+
+    if (widget.banners.isEmpty) return const SizedBox.shrink();
+
     return Column(
       children: [
         SizedBox(
@@ -269,8 +327,9 @@ class _ImageSliderCustomState extends State<ImageSliderCustom> {
                 _currentPage = index;
               });
             },
-            itemCount: sliderImages.length,
+            itemCount: widget.banners.length,
             itemBuilder: (context, index) {
+              final banner = widget.banners[index];
               return Container(
                 margin: const EdgeInsets.symmetric(horizontal: 5),
                 decoration: BoxDecoration(
@@ -282,9 +341,26 @@ class _ImageSliderCustomState extends State<ImageSliderCustom> {
                       offset: const Offset(0, 8),
                     ),
                   ],
-                  image: DecorationImage(
-                    image: AssetImage(sliderImages[index]),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: CachedNetworkImage(
+                    imageUrl: banner['image'] ?? '',
                     fit: BoxFit.cover,
+                    width: double.infinity,
+                    placeholder: (context, url) => Shimmer.fromColors(
+                      baseColor: Colors.grey[300]!,
+                      highlightColor: Colors.grey[100]!,
+                      child: Container(
+                        color: Colors.white,
+                        width: double.infinity,
+                        height: double.infinity,
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => Container(
+                      color: const Color(0xFFF3F4F6),
+                      child: const Icon(Icons.broken_image_rounded, color: Color(0xFF9CA3AF), size: 40),
+                    ),
                   ),
                 ),
               );
@@ -295,7 +371,7 @@ class _ImageSliderCustomState extends State<ImageSliderCustom> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(
-            sliderImages.length,
+            widget.banners.length,
             (index) => AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               margin: const EdgeInsets.only(right: 6),
