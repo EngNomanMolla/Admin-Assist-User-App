@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_widgets/provider/todo_provider.dart';
+import 'package:flutter_widgets/services/local_db_service.dart';
+import 'package:flutter_widgets/services/notification_service.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
@@ -30,6 +32,8 @@ class TodoController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    // Request notification permissions when initializing
+    NotificationService().requestPermissions();
     fetchTodos();
   }
 
@@ -47,9 +51,20 @@ class TodoController extends GetxController {
         } else if (data['todos'] != null) {
            todoList = List<Map<String, dynamic>>.from(data['todos']);
         }
+        
+        // Sync local DB (Optional: insert all fetched todos)
+        for (var todo in todoList) {
+          await LocalDBService().upsertTodo(todo);
+          // We could also re-schedule notifications here if needed
+        }
+      } else {
+        // Fallback: load from local DB if API fails
+        todoList = await LocalDBService().getTodos();
       }
     } catch (e) {
       print("Error fetching todos: $e");
+      // Fallback: load from local DB if network error
+      todoList = await LocalDBService().getTodos();
     } finally {
       isLoading = false;
       update();
@@ -216,6 +231,41 @@ class TodoController extends GetxController {
           : await _todoProvider.createTodo(data);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        // Assume API returns the created/updated task object in 'data' or 'todo'
+        // For local storage, we will construct it manually since we might not have the full returned object
+        int todoId = isEditing ? editingTodoId! : 0; 
+        
+        // If it's a create, the API should return the ID. Let's try to parse it if available.
+        try {
+          final resData = jsonDecode(response.body);
+          if (resData['todo'] != null && resData['todo']['id'] != null) {
+            todoId = int.tryParse(resData['todo']['id'].toString()) ?? todoId;
+          } else if (resData['id'] != null) {
+            todoId = int.tryParse(resData['id'].toString()) ?? todoId;
+          }
+        } catch (e) {}
+
+        // 1. Store in Local Database
+        Map<String, dynamic> localData = {
+          "id": todoId,
+          "title": titleController.text,
+          "notes": notesController.text,
+          "repeat": selectedRepeat.toLowerCase(),
+          "due_date": formattedDate,
+          "status": "today" // default status or what API expects
+        };
+        await LocalDBService().upsertTodo(localData);
+
+        // 2. Schedule Notification
+        if (todoId != 0) {
+          await NotificationService().scheduleTaskNotification(
+            todoId,
+            titleController.text,
+            notesController.text.isNotEmpty ? notesController.text : "Task Reminder",
+            selectedDateTime!,
+          );
+        }
+
         if (!isEditing) {
            DateTime now = DateTime.now();
            bool isToday = selectedDateTime!.year == now.year &&
@@ -253,6 +303,12 @@ class TodoController extends GetxController {
       final response = await _todoProvider.deleteTodo(id);
       
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        // 1. Remove from Local DB
+        await LocalDBService().deleteTodo(id);
+        
+        // 2. Cancel Notification
+        await NotificationService().cancelNotification(id);
+
         Get.snackbar("Success", "Task deleted successfully", backgroundColor: Colors.green.withOpacity(0.8), colorText: Colors.white);
         fetchTodos();
       } else {
@@ -297,6 +353,13 @@ class TodoController extends GetxController {
       final response = await _todoProvider.updateTodo(id, data);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        // 1. Update Local DB
+        data['id'] = id;
+        await LocalDBService().upsertTodo(data);
+
+        // 2. Cancel Notification since it's complete
+        await NotificationService().cancelNotification(id);
+
         Get.snackbar("Success", "Task marked as complete", backgroundColor: Colors.green.withOpacity(0.8), colorText: Colors.white);
         fetchTodos();
       } else {
