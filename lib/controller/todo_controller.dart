@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 
 class TodoController extends GetxController {
   int selectedTab = 0;
-  final List<String> categories = ['Today', 'Expire', 'Next Up', 'Ongoing'];
+  final List<String> categories = ['Today', 'Expire', 'Next Up', 'Complete'];
 
   List<Map<String, dynamic>> todoList = [
     {

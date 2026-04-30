@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_widgets/controller/product_controller.dart';
 import 'package:get/get.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ProductDetailsScreen extends StatelessWidget {
   final Product product;
@@ -71,10 +72,13 @@ class ProductDetailsScreen extends StatelessWidget {
               padding: const EdgeInsets.all(12),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-                child: Image.asset(
-                  product.image,
+                child: CachedNetworkImage(
+                  imageUrl: product.image,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
+                  placeholder: (context, url) => const Center(
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF7B39FD)),
+                  ),
+                  errorWidget: (context, url, error) =>
                       const Icon(Icons.image_outlined, size: 80, color: Color(0xFFD1D5DB)),
                 ),
               ),
@@ -109,7 +113,7 @@ class ProductDetailsScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              product.title,
+                              product.name,
                               style: const TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.w800,
@@ -119,7 +123,7 @@ class ProductDetailsScreen extends StatelessWidget {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              product.subTitle,
+                              product.category.name,
                               style: const TextStyle(
                                 fontSize: 14,
                                 color: Color(0xFF6B7280),
@@ -135,9 +139,9 @@ class ProductDetailsScreen extends StatelessWidget {
                           color: const Color(0xFF10B981).withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Text(
-                          "Export Quality",
-                          style: TextStyle(
+                        child: Text(
+                          product.quality,
+                          style: const TextStyle(
                             color: Color(0xFF10B981),
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
@@ -146,6 +150,26 @@ class ProductDetailsScreen extends StatelessWidget {
                       ),
                     ],
                   ),
+                  if (product.description != null && product.description!.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    const Text(
+                      "Description",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF374151),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      product.description!,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF6B7280),
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 24),
                   const Text(
                     "Specifications",
