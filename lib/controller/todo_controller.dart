@@ -1,66 +1,82 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_widgets/provider/todo_provider.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
 class TodoController extends GetxController {
+  final TodoProvider _todoProvider = TodoProvider();
+  
   int selectedTab = 0;
   final List<String> categories = ['Today', 'Expire', 'Next Up', 'Complete'];
+  
+  final Map<String, String> categoryStatusMap = {
+    'Today': 'today',
+    'Expire': 'expire',
+    'Next Up': 'nextup',
+    'Complete': 'complete',
+  };
 
-  List<Map<String, dynamic>> todoList = [
-    {
-      'title': 'Branch Manager Progress M',
-      'date': '25 July 2025',
-      'time': '4:00 PM',
-      'status': 'Today',
-      'notes': [
-        'Monthly target review',
-        'Discuss staff performance',
-        'Next action plan',
-      ],
-    },
-    {
-      'title': 'Branch Manager Progress M',
-      'date': '25 July 2025',
-      'time': '4:00 PM',
-      'status': 'Today',
-      'notes': [
-        'Monthly target review',
-        'Discuss staff performance',
-        'Next action plan',
-      ],
-    },
+  bool isLoading = false;
+  int? processingTodoId; // Track which todo is being updated/deleted
+  DateTime? selectedDateTime;
 
-    {
-      'title': 'Branch Manager Progress M',
-      'date': '25 July 2025',
-      'time': '4:00 PM',
-      'status': 'Today',
-      'notes': [
-        'Monthly target review',
-        'Discuss staff performance',
-        'Next action plan',
-      ],
-    },
-  ];
+  List<Map<String, dynamic>> todoList = [];
+
+  // Edit Mode State
+  bool isEditing = false;
+  int? editingTodoId;
+
+  @override
+  void onInit() {
+    super.onInit();
+    fetchTodos();
+  }
+
+  Future<void> fetchTodos() async {
+    try {
+      isLoading = true;
+      update();
+      
+      final response = await _todoProvider.getTodos('all');
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data is List) {
+           todoList = List<Map<String, dynamic>>.from(data);
+        } else if (data['todos'] != null) {
+           todoList = List<Map<String, dynamic>>.from(data['todos']);
+        }
+      }
+    } catch (e) {
+      print("Error fetching todos: $e");
+    } finally {
+      isLoading = false;
+      update();
+    }
+  }
 
   TextEditingController titleController = TextEditingController();
   TextEditingController notesController = TextEditingController();
   TextEditingController dateController = TextEditingController();
   TextEditingController searchController = TextEditingController();
 
-  String selectedRepeat = "Once";
-  List<String> repeatOptions = ["Once", "Daily", "Weekly", "Monthly"];
+  String selectedRepeat = "once";
+  List<String> repeatOptions = ["once", "daily", "weekly", "monthly"];
 
   bool isSearching = false;
   String searchQuery = "";
 
   List<Map<String, dynamic>> get filteredTodoList {
-    var list = todoList.where((e) => e['status'] == categories[selectedTab]).toList();
+    String currentStatus = categoryStatusMap[categories[selectedTab]] ?? 'today';
+    var list = todoList.where((e) => e['status'].toString().toLowerCase() == currentStatus).toList();
+    
     if (searchQuery.isNotEmpty) {
       list = list.where((e) {
-        final title = e['title'].toString().toLowerCase();
+        final title = (e['title'] ?? '').toString().toLowerCase();
+        final notes = (e['notes'] ?? '').toString().toLowerCase();
         final query = searchQuery.toLowerCase();
-        return title.contains(query);
+        return title.contains(query) || notes.contains(query);
       }).toList();
     }
     return list;
@@ -86,47 +102,215 @@ class TodoController extends GetxController {
   }
 
   Future<void> selectDate(BuildContext context) async {
-    DateTime? picked = await showDatePicker(
+    final DateTime now = DateTime.now();
+    DateTime? pickedDate = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
+      initialDate: selectedDateTime ?? now,
+      firstDate: now,
       lastDate: DateTime(2101),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF7B39FD),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
-    if (picked != null) {
-      dateController.text = DateFormat('dd MMMM yyyy').format(picked);
-      update();
+
+    if (pickedDate != null) {
+      TimeOfDay? pickedTime = await showTimePicker(
+        context: context,
+        initialTime: selectedDateTime != null ? TimeOfDay.fromDateTime(selectedDateTime!) : TimeOfDay.now(),
+        builder: (context, child) {
+          return Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: const ColorScheme.light(
+                primary: Color(0xFF7B39FD),
+              ),
+            ),
+            child: child!,
+          );
+        },
+      );
+
+      if (pickedTime != null) {
+        selectedDateTime = DateTime(
+          pickedDate.year,
+          pickedDate.month,
+          pickedDate.day,
+          pickedTime.hour,
+          pickedTime.minute,
+        );
+        
+        dateController.text = DateFormat('dd MMM yyyy, hh:mm a').format(selectedDateTime!);
+        update();
+      }
     }
   }
 
   void setRepeat(String? value) {
-    selectedRepeat = value ?? "Once";
+    selectedRepeat = value ?? "once";
     update();
   }
 
-  void addTodoFromForm() {
-    if (titleController.text.isEmpty) {
-      Get.snackbar(
-        "Error",
-        "Title cannot be empty",
-        snackPosition: SnackPosition.BOTTOM,
-      );
-      return;
-    }
-
-    todoList.add({
-      'title': titleController.text,
-      'date': dateController.text.isEmpty
-          ? DateFormat('dd MMMM yyyy').format(DateTime.now())
-          : dateController.text,
-      'time': DateFormat('h:mm a').format(DateTime.now()),
-      'status': 'Today',
-      'notes': notesController.text.split('\n'),
-    });
-
+  void prepareCreate() {
+    isEditing = false;
+    editingTodoId = null;
     titleController.clear();
     notesController.clear();
     dateController.clear();
+    selectedDateTime = null;
+    selectedRepeat = "once";
     update();
-    Get.back();
+  }
+
+  void prepareEdit(Map<String, dynamic> todo) {
+    isEditing = true;
+    editingTodoId = int.tryParse(todo['id'].toString());
+    titleController.text = todo['title'] ?? '';
+    notesController.text = todo['notes']?.toString() ?? '';
+    selectedRepeat = todo['repeat']?.toString().toLowerCase() ?? 'once';
+    
+    if (todo['due_date'] != null) {
+      try {
+        selectedDateTime = DateTime.parse(todo['due_date'].toString());
+        dateController.text = DateFormat('dd MMM yyyy, hh:mm a').format(selectedDateTime!);
+      } catch (e) {
+        dateController.clear();
+        selectedDateTime = null;
+      }
+    } else {
+      dateController.clear();
+      selectedDateTime = null;
+    }
+    update();
+  }
+
+  Future<bool> saveTodo() async {
+    if (titleController.text.isEmpty) {
+      Get.snackbar("Error", "Title cannot be empty", backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+      return false;
+    }
+    if (selectedDateTime == null) {
+      Get.snackbar("Error", "Please select date and time", backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+      return false;
+    }
+
+    try {
+      isLoading = true;
+      update();
+
+      String formattedDate = DateFormat('yyyy-MM-dd HH:mm:ss').format(selectedDateTime!);
+      Map<String, dynamic> data = {
+        "title": titleController.text,
+        "notes": notesController.text,
+        "repeat": selectedRepeat.toLowerCase(),
+        "due_date": formattedDate,
+      };
+
+      final response = isEditing 
+          ? await _todoProvider.updateTodo(editingTodoId!, data)
+          : await _todoProvider.createTodo(data);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        if (!isEditing) {
+           DateTime now = DateTime.now();
+           bool isToday = selectedDateTime!.year == now.year &&
+                          selectedDateTime!.month == now.month &&
+                          selectedDateTime!.day == now.day;
+           selectedTab = isToday ? 0 : 2;
+        }
+
+        Get.snackbar("Success", isEditing ? "Task updated successfully" : "Task created successfully", 
+            backgroundColor: Colors.green.withOpacity(0.8), colorText: Colors.white);
+        
+        fetchTodos();
+        return true;
+      } else {
+        final errorData = jsonDecode(response.body);
+        Get.snackbar("Error", errorData['message'] ?? "Failed to save task", backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+        return false;
+      }
+    } catch (e) {
+      print("Error saving todo: $e");
+      Get.snackbar("Error", "Something went wrong", backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+      return false;
+    } finally {
+      isLoading = false;
+      update();
+    }
+  }
+
+  Future<void> deleteTodo(int id) async {
+    try {
+      isLoading = true;
+      processingTodoId = id;
+      update();
+      
+      final response = await _todoProvider.deleteTodo(id);
+      
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        Get.snackbar("Success", "Task deleted successfully", backgroundColor: Colors.green.withOpacity(0.8), colorText: Colors.white);
+        fetchTodos();
+      } else {
+        Get.snackbar("Error", "Failed to delete task", backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+      }
+    } catch (e) {
+      print("Error deleting todo: $e");
+    } finally {
+      isLoading = false;
+      processingTodoId = null;
+      update();
+    }
+  }
+
+  Future<void> markDone(Map<String, dynamic> todo) async {
+    int id = int.tryParse(todo['id'].toString()) ?? 0;
+    if (id == 0) return;
+
+    try {
+      isLoading = true;
+      processingTodoId = id;
+      update();
+
+      String formattedDueDate = "";
+      if (todo['due_date'] != null) {
+        try {
+          DateTime dt = DateTime.parse(todo['due_date'].toString());
+          formattedDueDate = DateFormat('yyyy-MM-dd HH:mm:ss').format(dt);
+        } catch (e) {
+          formattedDueDate = todo['due_date'].toString();
+        }
+      }
+
+      Map<String, dynamic> data = {
+        "title": todo['title']?.toString() ?? '',
+        "notes": todo['notes']?.toString() ?? '',
+        "repeat": (todo['repeat'] ?? 'once').toString().toLowerCase(),
+        "due_date": formattedDueDate,
+        "status": "complete",
+      };
+
+      final response = await _todoProvider.updateTodo(id, data);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        Get.snackbar("Success", "Task marked as complete", backgroundColor: Colors.green.withOpacity(0.8), colorText: Colors.white);
+        fetchTodos();
+      } else {
+        final errorData = jsonDecode(response.body);
+        String errorMsg = errorData['message'] ?? "Failed to update task status";
+        Get.snackbar("Error", errorMsg, backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+      }
+    } catch (e) {
+      print("Error marking todo as done: $e");
+      Get.snackbar("Error", "Network error occurred", backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+    } finally {
+      isLoading = false;
+      processingTodoId = null;
+      update();
+    }
   }
 }

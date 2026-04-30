@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_widgets/controller/todo_controller.dart';
 import 'package:flutter_widgets/screens/todo_list_screen/todo_details_screen.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 
 class TodoListScreen extends StatelessWidget {
   const TodoListScreen({super.key});
@@ -74,17 +75,23 @@ class TodoListScreen extends StatelessWidget {
             children: [
               _buildCategories(controller),
               Expanded(
-                child: controller.filteredTodoList.isEmpty
-                    ? _buildEmptyState()
-                    : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
-                        physics: const BouncingScrollPhysics(),
-                        itemCount: controller.filteredTodoList.length,
-                        itemBuilder: (context, index) {
-                          var todo = controller.filteredTodoList[index];
-                          return _buildTodoCard(todo, controller);
-                        },
-                      ),
+                child: controller.isLoading && controller.todoList.isEmpty
+                    ? const Center(child: CircularProgressIndicator(color: Color(0xFF7B39FD)))
+                    : controller.filteredTodoList.isEmpty
+                        ? _buildEmptyState()
+                        : RefreshIndicator(
+                            onRefresh: () => controller.fetchTodos(),
+                            color: const Color(0xFF7B39FD),
+                            child: ListView.builder(
+                              padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              itemCount: controller.filteredTodoList.length,
+                              itemBuilder: (context, index) {
+                                var todo = controller.filteredTodoList[index];
+                                return _buildTodoCard(todo, controller, context);
+                              },
+                            ),
+                          ),
               ),
             ],
           ),
@@ -92,7 +99,10 @@ class TodoListScreen extends StatelessWidget {
             width: 52,
             height: 52,
             child: FloatingActionButton(
-              onPressed: () => _showAddTaskSheet(context, controller),
+              onPressed: () {
+                controller.prepareCreate();
+                _showAddTaskSheet(context, controller);
+              },
               backgroundColor: const Color(0xFF7B39FD),
               elevation: 6,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -140,26 +150,27 @@ class TodoListScreen extends StatelessWidget {
                   },
                   behavior: HitTestBehavior.opaque,
                   child: AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                margin: const EdgeInsets.symmetric(horizontal: 4),
-                decoration: BoxDecoration(
-                  color: isSelected ? const Color(0xFF7B39FD) : Colors.transparent,
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  controller.categories[index],
-                  style: TextStyle(
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                    fontSize: 13,
-                    color: isSelected ? Colors.white : const Color(0xFF6B7280),
+                    duration: const Duration(milliseconds: 250),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    decoration: BoxDecoration(
+                      color: isSelected ? const Color(0xFF7B39FD) : Colors.transparent,
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      controller.categories[index],
+                      style: TextStyle(
+                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                        fontSize: 13,
+                        color: isSelected ? Colors.white : const Color(0xFF6B7280),
+                      ),
+                    ),
                   ),
-                ),
-              ));
-            }
-          );
-        },
+                );
+              }
+            );
+          },
         ),
       ),
     );
@@ -200,9 +211,18 @@ class TodoListScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTodoCard(Map<String, dynamic> todo, TodoController controller) {
+  Widget _buildTodoCard(Map<String, dynamic> todo, TodoController controller, BuildContext context) {
+    int todoId = int.tryParse(todo['id'].toString()) ?? 0;
+    bool isCompleted = todo['status'].toString().toLowerCase() == 'complete';
+    bool isProcessing = controller.processingTodoId == todoId;
+
     return GestureDetector(
-      onTap: () => Get.to(() => TodoDetailsScreen(todo: todo)),
+      onTap: () async {
+        var result = await Get.to(() => TodoDetailsScreen(todo: todo));
+        if (result == 'edit') {
+           _showAddTaskSheet(context, controller);
+        }
+      },
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(16),
@@ -216,157 +236,182 @@ class TodoListScreen extends StatelessWidget {
               offset: const Offset(0, 8),
             ),
           ],
-          border: Border.all(color: Colors.grey.shade100),
+          border: Border.all(color: isCompleted ? const Color(0xFF10B981).withOpacity(0.3) : Colors.grey.shade100),
         ),
         child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF7B39FD).withOpacity(0.1),
-                        shape: BoxShape.circle,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: (isCompleted || isProcessing) ? null : () => controller.markDone(todo),
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: isCompleted ? const Color(0xFF10B981).withOpacity(0.1) : const Color(0xFF7B39FD).withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: isProcessing 
+                            ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Color(0xFF7B39FD), strokeWidth: 2))
+                            : Icon(
+                                isCompleted ? Icons.check_circle_rounded : Icons.assignment_rounded, 
+                                color: isCompleted ? const Color(0xFF10B981) : const Color(0xFF7B39FD), 
+                                size: 20
+                              ),
+                        ),
                       ),
-                      child: const Icon(Icons.assignment_rounded, color: Color(0xFF7B39FD), size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  todo['title'],
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 15,
-                                    color: Color(0xFF111827),
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              todo['title'] ?? '',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 15,
+                                color: Color(0xFF111827),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Row(
+                              children: [
+                                const Icon(Icons.access_time_rounded, size: 12, color: Color(0xFF6B7280)),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _formatDueDate(todo['due_date']),
+                                  style: const TextStyle(color: Color(0xFF6B7280), fontSize: 12, fontWeight: FontWeight.w500),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                PopupMenuButton(
+                  icon: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: const Icon(Icons.more_horiz_rounded, color: Color(0xFF6B7280), size: 20),
+                  ),
+                  onSelected: (value) {
+                    if (value == 'edit') {
+                      controller.prepareEdit(todo);
+                      _showAddTaskSheet(context, controller);
+                    } else if (value == 'delete') {
+                      _showDeleteConfirmation(context, controller, todoId);
+                    }
+                  },
+                  padding: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'edit',
+                      enabled: !isCompleted,
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.edit_outlined, 
+                            size: 16, 
+                            color: isCompleted ? Colors.grey.shade400 : const Color(0xFF4B5563)
                           ),
-                          const SizedBox(height: 2),
-                          Row(
-                            children: [
-                              const Icon(Icons.access_time_rounded, size: 12, color: Color(0xFF6B7280)),
-                              const SizedBox(width: 4),
-                              Text(
-                                "${todo['date']}  •  ${todo['time']}",
-                                style: const TextStyle(color: Color(0xFF6B7280), fontSize: 12, fontWeight: FontWeight.w500),
-                              ),
-                            ],
+                          const SizedBox(width: 10),
+                          Text(
+                            "Edit", 
+                            style: TextStyle(
+                              color: isCompleted ? Colors.grey.shade400 : const Color(0xFF4B5563), 
+                              fontSize: 13
+                            )
                           ),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete_outline_rounded, size: 16, color: Colors.red.shade400),
+                          const SizedBox(width: 10),
+                          Text("Delete", style: TextStyle(color: Colors.red.shade400, fontSize: 13)),
                         ],
                       ),
                     ),
                   ],
                 ),
-              ),
-              PopupMenuButton(
-                icon: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  child: const Icon(Icons.more_horiz_rounded, color: Color(0xFF6B7280), size: 20),
-                ),
-                padding: EdgeInsets.zero,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'edit',
-                    child: Row(
-                      children: [
-                        Icon(Icons.edit_outlined, size: 16, color: Color(0xFF4B5563)),
-                        SizedBox(width: 10),
-                        Text("Edit", style: TextStyle(color: Color(0xFF4B5563), fontSize: 13)),
-                      ],
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        Icon(Icons.delete_outline_rounded, size: 16, color: Colors.red.shade400),
-                        const SizedBox(width: 10),
-                        Text("Delete", style: TextStyle(color: Colors.red.shade400, fontSize: 13)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          if ((todo['notes'] as List).isNotEmpty) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF9FAFB),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.grey.shade100),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text("Notes", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF374151))),
-                  const SizedBox(height: 6),
-                  Builder(
-                    builder: (context) {
-                      String notesStr = (todo['notes'] as List).map((e) => "• $e").join("\n");
-                      bool isLong = (todo['notes'] as List).length > 2 || notesStr.length > 80;
-                      Widget textWidget = Text(
-                        notesStr,
-                        style: const TextStyle(color: Color(0xFF6B7280), fontSize: 13, height: 1.5),
-                        maxLines: 3,
-                      );
-                      
-                      if (isLong) {
-                        return ShaderMask(
-                          shaderCallback: (Rect bounds) {
-                            return const LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [Colors.black, Colors.transparent],
-                              stops: [0.5, 1.0],
-                            ).createShader(bounds);
-                          },
-                          blendMode: BlendMode.dstIn,
-                          child: textWidget,
-                        );
-                      }
-                      return textWidget;
-                    }
-                  ),
-                ],
-              ),
+              ],
             ),
             const SizedBox(height: 16),
-          ],
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(child: _actionButton(Icons.check_circle_outline_rounded, "Mark Done", const Color(0xFF10B981), onTap: () {})),
-              const SizedBox(width: 8),
-              Expanded(child: _actionButton(Icons.visibility_outlined, "View Details", const Color(0xFF3B82F6), onTap: () => Get.to(() => TodoDetailsScreen(todo: todo)))),
+            if (todo['notes'] != null && todo['notes'].toString().isNotEmpty) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF9FAFB),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.grey.shade100),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("Notes", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF374151))),
+                    const SizedBox(height: 6),
+                    Text(
+                      todo['notes'].toString(),
+                      style: const TextStyle(color: Color(0xFF6B7280), fontSize: 13, height: 1.5),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
             ],
-          ),
-        ],
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: _actionButton(
+                    isProcessing ? Icons.hourglass_empty_rounded : (isCompleted ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded), 
+                    isProcessing ? "Updating..." : (isCompleted ? "Completed" : "Mark Done"), 
+                    isCompleted ? const Color(0xFF10B981) : const Color(0xFF6B7280), 
+                    onTap: (isCompleted || isProcessing) ? null : () => controller.markDone(todo)
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(child: _actionButton(Icons.visibility_outlined, "View Details", const Color(0xFF3B82F6), onTap: () async {
+                  var result = await Get.to(() => TodoDetailsScreen(todo: todo));
+                  if (result == 'edit') {
+                    if (context.mounted) _showAddTaskSheet(context, controller);
+                  }
+                })),
+              ],
+            ),
+          ],
+        ),
       ),
-    ));
+    );
+  }
+
+  String _formatDueDate(dynamic dueDate) {
+    if (dueDate == null || dueDate.toString().isEmpty) return "No date set";
+    try {
+      DateTime dt = DateTime.parse(dueDate.toString());
+      return DateFormat('dd MMM yyyy  hh:mm a').format(dt);
+    } catch (e) {
+      return dueDate.toString();
+    }
   }
 
   Widget _actionButton(IconData icon, String label, Color color, {VoidCallback? onTap}) {
@@ -400,6 +445,70 @@ class TodoListScreen extends StatelessWidget {
     );
   }
 
+  void _showDeleteConfirmation(BuildContext context, TodoController controller, int id) {
+    Get.dialog(
+      Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400, size: 32),
+              ),
+              const SizedBox(height: 20),
+              const Text("Delete Task", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+              const SizedBox(height: 12),
+              const Text(
+                "Are you sure you want to delete this task? This action cannot be undone.",
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: Color(0xFF6B7280), height: 1.5),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Get.back(),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        side: BorderSide(color: Colors.grey.shade200),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text("Cancel", style: TextStyle(color: Color(0xFF4B5563), fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Get.back();
+                        controller.deleteTodo(id);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade400,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text("Delete", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showAddTaskSheet(BuildContext context, TodoController controller) {
     showModalBottomSheet(
       context: context,
@@ -416,102 +525,115 @@ class TodoListScreen extends StatelessWidget {
           left: 24,
           right: 24,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE5E7EB),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Row(
-              children: [
-                Icon(Icons.add_task_rounded, color: Color(0xFF7B39FD)),
-                SizedBox(width: 8),
-                Text(
-                  "Create New Task",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            _buildLabel("Task Title"),
-            _buildTextField(controller.titleController, "What needs to be done?"),
-            const SizedBox(height: 16),
-            _buildLabel("Notes & Details"),
-            _buildTextField(controller.notesController, "Add any extra notes...", maxLines: 3),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+        child: GetBuilder<TodoController>(
+          builder: (controller) {
+            return SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE5E7EB),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
                     children: [
-                      _buildLabel("Date & Time"),
-                      _buildTextField(
-                        controller.dateController,
-                        "Select",
-                        icon: Icons.calendar_today_rounded,
-                        readOnly: true,
-                        onTap: () => controller.selectDate(context),
+                      Icon(
+                        controller.isEditing ? Icons.edit_note_rounded : Icons.add_task_rounded, 
+                        color: const Color(0xFF7B39FD)
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        controller.isEditing ? "Edit Task" : "Create New Task",
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  const SizedBox(height: 24),
+                  _buildLabel("Task Title"),
+                  _buildTextField(controller.titleController, "What needs to be done?"),
+                  const SizedBox(height: 16),
+                  _buildLabel("Notes & Details"),
+                  _buildTextField(controller.notesController, "Add any extra notes...", maxLines: 3),
+                  const SizedBox(height: 16),
+                  Row(
                     children: [
-                      _buildLabel("Repeat"),
-                      _buildDropdown(controller),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildLabel("Date & Time"),
+                            _buildTextField(
+                              controller.dateController,
+                              "Select",
+                              icon: Icons.calendar_today_rounded,
+                              readOnly: true,
+                              onTap: () => controller.selectDate(context),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildLabel("Repeat"),
+                            _buildDropdown(controller),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Get.back(),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      side: BorderSide(color: Colors.grey.shade300),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: const Text("Cancel", style: TextStyle(color: Color(0xFF4B5563), fontSize: 14, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 32),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: BorderSide(color: Colors.grey.shade300),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: const Text("Cancel", style: TextStyle(color: Color(0xFF4B5563), fontSize: 14, fontWeight: FontWeight.w600)),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton(
+                          onPressed: controller.isLoading ? null : () async {
+                            bool success = await controller.saveTodo();
+                            if (success) {
+                              if (context.mounted) Navigator.pop(context);
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF7B39FD),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: controller.isLoading 
+                            ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                            : Text(controller.isEditing ? "Update Task" : "Create Task", style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 2,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      controller.addTodoFromForm();
-                      Get.back();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF7B39FD),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: const Text("Create Task", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-          ],
+                  const SizedBox(height: 48),
+                ],
+              ),
+            );
+          }
         ),
       ),
     );
@@ -574,7 +696,7 @@ class TodoListScreen extends StatelessWidget {
           style: const TextStyle(fontSize: 14, color: Color(0xFF111827), fontWeight: FontWeight.w500),
           onChanged: (val) => controller.setRepeat(val),
           items: controller.repeatOptions
-              .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+              .map((e) => DropdownMenuItem(value: e, child: Text(e.capitalizeFirst!)))
               .toList(),
         ),
       ),
