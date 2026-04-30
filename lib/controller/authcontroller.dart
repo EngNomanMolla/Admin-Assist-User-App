@@ -224,11 +224,37 @@ class AuthController extends GetxController {
     Get.offAllNamed('/login');
   }
 
-  void logout() {
-    _storage.write('isLoggedIn', false);
-    _storage.remove('token');
-    _storage.remove('userData');
-    Get.offAllNamed('/login');
+  Future<void> logout() async {
+    try {
+      isLoading.value = true;
+      Get.dialog(
+        const Center(child: CircularProgressIndicator(color: Color(0xFF7B39FD))),
+        barrierDismissible: false,
+      );
+
+      final response = await _authProvider.logout();
+      
+      Get.back(); // Close loading dialog
+      isLoading.value = false;
+
+      // Even if API fails, we clear local session for safety
+      _storage.write('isLoggedIn', false);
+      _storage.remove('token');
+      _storage.remove('userData');
+      
+      Get.offAllNamed('/login');
+      Get.snackbar("Success", "Logged out successfully", snackPosition: SnackPosition.BOTTOM);
+    } catch (e) {
+      if (Get.isDialogOpen!) Get.back();
+      isLoading.value = false;
+      print("Logout Error: $e");
+      
+      // Still logout locally
+      _storage.write('isLoggedIn', false);
+      _storage.remove('token');
+      _storage.remove('userData');
+      Get.offAllNamed('/login');
+    }
   }
 
   @override

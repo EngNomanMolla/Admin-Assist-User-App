@@ -25,4 +25,7 @@ class AuthProvider extends ApiProvider {
 
   // Forgot Password
   Future<http.Response> forgotPassword(String email) => postRequest('/forgot-password', {'email': email});
+
+  // Logout request
+  Future<http.Response> logout() => postRequest('/logout', {});
 }
