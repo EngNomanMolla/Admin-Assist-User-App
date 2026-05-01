@@ -263,6 +263,7 @@ class TodoController extends GetxController {
             titleController.text,
             notesController.text.isNotEmpty ? notesController.text : "Task Reminder",
             selectedDateTime!,
+            repeat: selectedRepeat.toLowerCase(),
           );
         }
 
