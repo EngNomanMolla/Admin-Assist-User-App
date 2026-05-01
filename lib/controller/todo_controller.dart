@@ -52,10 +52,43 @@ class TodoController extends GetxController {
            todoList = List<Map<String, dynamic>>.from(data['todos']);
         }
         
-        // Sync local DB (Optional: insert all fetched todos)
+        // Sync local DB and Notifications
         for (var todo in todoList) {
           await LocalDBService().upsertTodo(todo);
-          // We could also re-schedule notifications here if needed
+          
+          int? todoId = int.tryParse(todo['id']?.toString() ?? '');
+          if (todoId != null && todoId != 0) {
+            String status = (todo['status'] ?? '').toString().toLowerCase();
+            
+            if (status == 'complete') {
+              await NotificationService().cancelNotification(todoId);
+            } else {
+              if (todo['due_date'] != null) {
+                try {
+                  String dateStr = todo['due_date'].toString();
+                  // Remove 'Z' to prevent it from being parsed as UTC, since it was sent as local time
+                  if (dateStr.endsWith('Z')) {
+                    dateStr = dateStr.replaceAll('Z', '');
+                  }
+                  DateTime dueDate = DateTime.parse(dateStr);
+                  
+                  String title = todo['title']?.toString() ?? 'Task';
+                  String notes = todo['notes']?.toString() ?? 'Task Reminder';
+                  String repeat = (todo['repeat'] ?? 'once').toString().toLowerCase();
+                  
+                  await NotificationService().scheduleTaskNotification(
+                    todoId,
+                    title,
+                    notes.isNotEmpty ? notes : "Task Reminder",
+                    dueDate,
+                    repeat: repeat,
+                  );
+                } catch (e) {
+                  print('Error scheduling fetched task $todoId: $e');
+                }
+              }
+            }
+          }
         }
       } else {
         // Fallback: load from local DB if API fails
