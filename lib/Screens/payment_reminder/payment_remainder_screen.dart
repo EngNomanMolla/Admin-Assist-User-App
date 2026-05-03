@@ -435,12 +435,45 @@ class PaymentCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  Row(
-                    children: [
-                      // Next (Reschedule) Button
-                      InkWell(
-                        onTap: () async {
-                          if (payment.id == null) return;
+                  InkWell(
+                   onTap: () {
+                     if (payment.id != null) {
+                       showAddPaymentDialog(context, controller, payment.id!);
+                     } else {
+                       Get.snackbar("Error", "Invalid payment record", backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+                     }
+                   },
+                    borderRadius: BorderRadius.circular(32),
+                    child: Container(
+                      height: 32,
+                      width: 32,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.04),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          )
+                        ]
+                      ),
+                      child: const Icon(Icons.add_rounded, color: Color(0xFF7B39FD), size: 20),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(child: _actionButton(Icons.call_rounded, "Call", const Color(0xFF10B981), () {})),
+                const SizedBox(width: 8),
+                Expanded(child: _actionButton(Icons.chat_bubble_rounded, "Message", const Color(0xFF3B82F6), () {})),
+                const SizedBox(width: 8),
+                Expanded(child: _actionButton(Icons.calendar_month_rounded, "Next", const Color(0xFFF59E0B), () async {
+                   if (payment.id == null) return;
                           
                           DateTime? pickedDate = await showDatePicker(
                             context: context,
@@ -478,60 +511,7 @@ class PaymentCard extends StatelessWidget {
                               controller.reschedulePayment(payment, fullDateTime);
                             }
                           }
-                        },
-                        borderRadius: BorderRadius.circular(32),
-                        child: Container(
-                          height: 32,
-                          width: 32,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF7B39FD).withOpacity(0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.update_rounded, color: Color(0xFF7B39FD), size: 18),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      // Add Payment Button
-                      InkWell(
-                       onTap: () {
-                         if (payment.id != null) {
-                           showAddPaymentDialog(context, controller, payment.id!);
-                         } else {
-                           Get.snackbar("Error", "Invalid payment record", backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
-                         }
-                       },
-                        borderRadius: BorderRadius.circular(32),
-                        child: Container(
-                          height: 32,
-                          width: 32,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.04),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              )
-                            ]
-                          ),
-                          child: const Icon(Icons.add_rounded, color: Color(0xFF7B39FD), size: 20),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(child: _actionButton(Icons.call_rounded, "Call", const Color(0xFF10B981))),
-                const SizedBox(width: 8),
-                Expanded(child: _actionButton(Icons.chat_bubble_rounded, "Message", const Color(0xFF3B82F6))),
-                const SizedBox(width: 8),
-                Expanded(child: _actionButton(Icons.calendar_month_rounded, "Next", const Color(0xFFF59E0B))),
+                })),
               ],
             ),
           ],
@@ -540,29 +520,33 @@ class PaymentCard extends StatelessWidget {
     );
   }
 
-  Widget _actionButton(IconData icon, String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.2)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+  Widget _actionButton(IconData icon, String label, Color color, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.2)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
