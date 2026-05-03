@@ -28,7 +28,7 @@ class HomeScreen extends StatelessWidget {
           color: const Color(0xFF7B39FD),
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 50),
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 110),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
