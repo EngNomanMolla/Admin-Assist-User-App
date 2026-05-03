@@ -67,55 +67,8 @@ class PaymentController extends GetxController {
     }
   }
   int selectedTab = 0;
-
-  var paymentList = <PaymentModel>[
-    PaymentModel(
-      name: "Bipul Sarkar",
-      mobileNo: "01710000001",
-      time: "25 Jul • 4:00 PM",
-      amount: "\$5000",
-      totalAmount: "\$8000",
-      repeat: "Monthly",
-      status: "today",
-      note: "Client requested an extension on the next payment. Please follow up on Monday regarding the remaining balance.",
-    ),
-    PaymentModel(
-      name: "Anik Ahmed",
-      mobileNo: "01710000002",
-      time: "25 Jul • 5:30 PM",
-      amount: "\$3000",
-      totalAmount: "\$5000",
-      repeat: "Weekly",
-      status: "today",
-    ),
-    PaymentModel(
-      name: "Sujon Ali",
-      mobileNo: "01710000003",
-      time: "26 Jul • 10:00 AM",
-      amount: "\$1200",
-      totalAmount: "\$4000",
-      repeat: "Monthly",
-      status: "today",
-    ),
-    PaymentModel(
-      name: "Bipul Sarkar",
-      mobileNo: "01710000001",
-      time: "25 Jul • 7:00 PM",
-      amount: "\$4500",
-      totalAmount: "\$9000",
-      repeat: "Monthly",
-      status: "today",
-    ),
-    PaymentModel(
-      name: "Tanvir Hossain",
-      mobileNo: "01710000004",
-      time: "27 Jul • 12:00 PM",
-      amount: "\$8000",
-      totalAmount: "\$15000",
-      repeat: "Yearly",
-      status: "expire",
-    ),
-  ].obs;
+  var paymentList = <PaymentModel>[].obs;
+  var paymentHistory = <PaymentHistoryModel>[].obs;
 
   List<PaymentModel> get filteredList {
     if (selectedTab == 0) {
@@ -217,33 +170,6 @@ class PaymentController extends GetxController {
   
   var selectedRepeat = "Monthly".obs;
   final List<String> repeatOptions = ["Weekly", "Monthly", "Half Yearly", "Yearly"];
-
-  var paymentHistory = <PaymentHistoryModel>[
-    PaymentHistoryModel(
-      date: "February 1, 2026",
-      day: "Sunday",
-      amount: 500.0,
-      status: "Completed",
-    ),
-    PaymentHistoryModel(
-      date: "January 1, 2026",
-      day: "Thursday",
-      amount: 500.0,
-      status: "Completed",
-    ),
-    PaymentHistoryModel(
-      date: "December 1, 2025",
-      day: "Monday",
-      amount: 500.0,
-      status: "Completed",
-    ),
-    PaymentHistoryModel(
-      date: "November 1, 2025",
-      day: "Saturday",
-      amount: 450.0,
-      status: "Completed",
-    ),
-  ].obs;
 
   double get paidAmount =>
       paymentHistory.fold(0, (sum, item) => sum + item.amount);

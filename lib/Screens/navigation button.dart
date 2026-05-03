@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_widgets/screens/calculator_screen/calculator_screen.dart';
 import 'package:flutter_widgets/screens/profile/profile_screen.dart';
 import 'package:flutter_widgets/Screens/home_screen.dart';
-import 'package:flutter_widgets/screens/todo_list_screen/todo_list_screen.dart';
+import 'package:flutter_widgets/screens/career_update/job_circular_screen.dart';
 import 'package:get/get.dart';
 
 class NavigationScreen extends StatefulWidget {
@@ -18,7 +18,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
   final List<Widget> _pages = [
     const HomeScreen(),
     CalculatorScreen(),
-    const TodoListScreen(),
+    const JobCircularScreen(),
     const ProfileScreen(),
   ];
 
@@ -49,7 +49,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
           children: [
             _buildNavItem(0, Icons.home_rounded, Icons.home_outlined),
             _buildNavItem(1, Icons.calculate_rounded, Icons.calculate_outlined),
-            _buildNavItem(2, Icons.checklist_rounded, Icons.checklist_rtl_rounded),
+            _buildNavItem(2, Icons.business_center_rounded, Icons.business_center_outlined),
             _buildNavItem(3, Icons.person_rounded, Icons.person_outline_rounded),
           ],
         ),
