@@ -159,7 +159,7 @@ class HomeScreen extends StatelessWidget {
         'color': const Color(0xFFEC4899),
       },
       {
-        'title': 'Career\nUpdates',
+        'title': 'Job\nCirculars',
         'icon': Icons.work_rounded,
         'color': const Color(0xFF10B981),
       },

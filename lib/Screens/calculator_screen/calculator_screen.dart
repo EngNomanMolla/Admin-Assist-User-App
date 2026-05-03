@@ -28,7 +28,7 @@ class CalculatorScreen extends StatelessWidget {
             // Display Section
             Expanded(
               child: Container(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
                 alignment: Alignment.bottomRight,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.end,
@@ -93,7 +93,7 @@ class CalculatorScreen extends StatelessWidget {
             
             // Buttons Section
             Container(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 30),
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
               decoration: const BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.only(
@@ -105,13 +105,13 @@ class CalculatorScreen extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _buildButtonRow(['AC', 'C', '%', '÷'], [Colors.redAccent, Colors.orangeAccent, const Color(0xFF7B61FF), const Color(0xFF7B61FF)]),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   _buildButtonRow(['7', '8', '9', 'x'], [Colors.black87, Colors.black87, Colors.black87, const Color(0xFF7B61FF)]),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   _buildButtonRow(['4', '5', '6', '-'], [Colors.black87, Colors.black87, Colors.black87, const Color(0xFF7B61FF)]),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   _buildButtonRow(['1', '2', '3', '+'], [Colors.black87, Colors.black87, Colors.black87, const Color(0xFF7B61FF)]),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   _buildButtonRow(['00', '0', '.', '='], [Colors.black87, Colors.black87, Colors.black87, Colors.green]),
                 ],
               ),

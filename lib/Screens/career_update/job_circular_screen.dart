@@ -41,7 +41,7 @@ class JobCircularScreen extends StatelessWidget {
           ),
         ),
         title: const Text(
-          "Career Updates",
+          "Job Circulars",
           style: TextStyle(
             color: Colors.white,
             fontSize: 18,
@@ -226,22 +226,9 @@ class JobCircularScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF9FAFB),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  child: const Icon(
-                    Icons.north_east_rounded,
-                    size: 18,
-                    color: Color(0xFF6B7280),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
+            ],
+          ),
+          const SizedBox(height: 16),
             Wrap(
               spacing: 12,
               runSpacing: 8,

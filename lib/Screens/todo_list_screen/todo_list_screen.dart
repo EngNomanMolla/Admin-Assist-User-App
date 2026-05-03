@@ -4,6 +4,7 @@ import 'package:flutter_widgets/controller/todo_controller.dart';
 import 'package:flutter_widgets/screens/todo_list_screen/todo_details_screen.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:shimmer/shimmer.dart';
 
 class TodoListScreen extends StatelessWidget {
   const TodoListScreen({super.key});
@@ -76,7 +77,7 @@ class TodoListScreen extends StatelessWidget {
               _buildCategories(controller),
               Expanded(
                 child: controller.isLoading && controller.todoList.isEmpty
-                    ? const Center(child: CircularProgressIndicator(color: Color(0xFF7B39FD)))
+                    ? _buildShimmerList()
                     : controller.filteredTodoList.isEmpty
                         ? _buildEmptyState()
                         : RefreshIndicator(
@@ -700,6 +701,76 @@ class TodoListScreen extends StatelessWidget {
               .toList(),
         ),
       ),
+    );
+  }
+
+  Widget _buildShimmerList() {
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+      itemCount: 6,
+      itemBuilder: (context, index) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.grey.shade100),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF7B39FD).withOpacity(0.06),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Shimmer.fromColors(
+            baseColor: Colors.grey[300]!,
+            highlightColor: Colors.grey[100]!,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(width: 150, height: 16, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4))),
+                          const SizedBox(height: 8),
+                          Container(width: 100, height: 12, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4))),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(width: 30, height: 30, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8))),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  height: 60,
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(child: Container(height: 36, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)))),
+                    const SizedBox(width: 8),
+                    Expanded(child: Container(height: 36, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)))),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

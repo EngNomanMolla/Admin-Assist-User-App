@@ -66,7 +66,7 @@ class JobDetailsScreen extends StatelessWidget {
           ),
         ),
         title: const Text(
-          "Job Details",
+          "Job Circular Details",
           style: TextStyle(
             color: Colors.white,
             fontSize: 18,
@@ -225,10 +225,10 @@ class JobDetailsScreen extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(isActive ? Icons.send_rounded : Icons.info_outline_rounded, color: Colors.white, size: 20),
+                Icon(isActive ? Icons.visibility_rounded : Icons.info_outline_rounded, color: Colors.white, size: 20),
                 const SizedBox(width: 10),
                 Text(
-                  isActive ? "Apply Now" : "Job Closed - View Details",
+                  isActive ? "View Details" : "Job Closed",
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
