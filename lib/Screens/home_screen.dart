@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_widgets/controller/home_controller.dart';
+import 'package:flutter_widgets/controller/mentor_post_controller.dart';
 import 'package:flutter_widgets/screens/career_update/job_circular_screen.dart';
 import 'package:flutter_widgets/screens/mentor_assist_post/mentor_post_screen.dart';
 import 'package:flutter_widgets/screens/payment_reminder/payment_remainder_screen.dart';
@@ -18,6 +19,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final HomeController controller = Get.put(HomeController());
+    Get.put(MentorPostController()); // Initialize to track new posts
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
@@ -137,6 +139,7 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildGridView(BuildContext context) {
+    final MentorPostController mentorController = Get.find<MentorPostController>();
     final List<Map<String, dynamic>> items = [
       {
         'title': 'Payment\nReminder',
@@ -214,13 +217,33 @@ class HomeScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: itemColor.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(items[index]['icon'], size: 22, color: itemColor),
+                Stack(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: itemColor.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(items[index]['icon'], size: 22, color: itemColor),
+                    ),
+                    if (index == 5)
+                      Obx(() => mentorController.hasNewPosts.value
+                          ? Positioned(
+                              top: 2,
+                              right: 2,
+                              child: Container(
+                                width: 10,
+                                height: 10,
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 2),
+                                ),
+                              ),
+                            )
+                          : const SizedBox.shrink()),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 Text(

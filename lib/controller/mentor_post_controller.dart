@@ -1,13 +1,18 @@
 import 'dart:convert';
 import 'package:flutter_widgets/provider/mentor_provider.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:intl/intl.dart';
 
 class MentorPostController extends GetxController {
   final MentorProvider _mentorProvider = MentorProvider();
+  final _storage = GetStorage();
   
   List<Map<String, dynamic>> postList = [];
   var isLoading = false.obs;
+  var hasNewPosts = false.obs;
+
+  static const String _lastSeenKey = 'last_seen_post_id';
 
   @override
   void onInit() {
@@ -36,9 +41,21 @@ class MentorPostController extends GetxController {
             'date': formattedDate,
             'imageUrl': post['type'] == 'image' ? post['file_url'] : null,
             'videoUrl': post['type'] == 'video' ? post['file_url'] : null,
-            'videoThumbnail': post['type'] == 'video' ? 'assets/images/postpic.png' : null, // Default thumbnail
+            'videoThumbnail': post['type'] == 'video' ? 'assets/images/postpic.png' : null, 
           };
         }).toList();
+
+        // Check for new posts
+        if (postList.isNotEmpty) {
+          int latestId = int.tryParse(postList.first['id'].toString()) ?? 0;
+          int lastSeenId = _storage.read(_lastSeenKey) ?? 0;
+          
+          if (latestId > lastSeenId) {
+            hasNewPosts.value = true;
+          } else {
+            hasNewPosts.value = false;
+          }
+        }
         
         update();
       } else {
@@ -48,6 +65,15 @@ class MentorPostController extends GetxController {
       isLoading.value = false;
       print("Error fetching mentor posts: $e");
       Get.snackbar("Error", "Something went wrong while loading posts");
+    }
+  }
+
+  void markPostsAsSeen() {
+    if (postList.isNotEmpty) {
+      int latestId = int.tryParse(postList.first['id'].toString()) ?? 0;
+      _storage.write(_lastSeenKey, latestId);
+      hasNewPosts.value = false;
+      update();
     }
   }
 

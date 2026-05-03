@@ -229,7 +229,8 @@ class CreateReminderScreen extends StatelessWidget {
                   : Text(
                       controller.isEditing ? "Update Reminder" : "Create Reminder",
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16),
-                    )),
+                    )
+                    ),
                 );
               }
             ),

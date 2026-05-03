@@ -11,6 +11,11 @@ class MentorPostScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final MentorPostController controller = Get.put(MentorPostController());
+    
+    // Mark posts as seen when visiting the screen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.markPostsAsSeen();
+    });
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),

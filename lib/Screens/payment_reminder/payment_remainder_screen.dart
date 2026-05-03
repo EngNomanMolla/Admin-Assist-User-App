@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
 import 'package:flutter_widgets/screens/payment_reminder/widgets/add_payment_dialog.dart';
+import 'package:shimmer/shimmer.dart';
 
 class PaymentRemainderScreen extends StatefulWidget {
   const PaymentRemainderScreen({super.key});
@@ -102,17 +103,22 @@ class _PaymentRemainderScreenState extends State<PaymentRemainderScreen> {
 
               Expanded(
                 child: controller.isLoading.value && controller.paymentList.isEmpty
-                    ? const Center(child: CircularProgressIndicator(color: Color(0xFF7B39FD)))
-                    : PageView(
-                        controller: _pageController,
-                        onPageChanged: (index) {
-                          controller.changeTab(index);
-                        },
-                        children: [
-                          _buildPaymentList("today"),
-                          _buildPaymentList("expire"),
-                          _buildPaymentList("nextup"),
-                        ],
+                    ? _buildShimmerList()
+                    : RefreshIndicator(
+                        onRefresh: () => controller.fetchPayments(),
+                        color: const Color(0xFF7B39FD),
+                        backgroundColor: Colors.white,
+                        child: PageView(
+                          controller: _pageController,
+                          onPageChanged: (index) {
+                            controller.changeTab(index);
+                          },
+                          children: [
+                            _buildPaymentList("today"),
+                            _buildPaymentList("expire"),
+                            _buildPaymentList("nextup"),
+                          ],
+                        ),
                       ),
               ),
             ],
@@ -142,7 +148,7 @@ class _PaymentRemainderScreenState extends State<PaymentRemainderScreen> {
         ? _buildEmptyState()
         : ListView.builder(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
-            physics: const BouncingScrollPhysics(),
+            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
             itemCount: list.length,
             itemBuilder: (context, index) {
               return PaymentCard(
@@ -154,18 +160,22 @@ class _PaymentRemainderScreenState extends State<PaymentRemainderScreen> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: const Color(0xFF7B39FD).withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.receipt_long_rounded, size: 48, color: const Color(0xFF7B39FD)),
-          ),
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+      child: SizedBox(
+        height: Get.height * 0.6,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF7B39FD).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.receipt_long_rounded, size: 48, color: Color(0xFF7B39FD)),
+              ),
           const SizedBox(height: 16),
           const Text(
             "No payments found",
@@ -183,8 +193,62 @@ class _PaymentRemainderScreenState extends State<PaymentRemainderScreen> {
               color: const Color(0xFF6B7280),
             ),
           ),
-        ],
+            ],
+          ),
+        ),
       ),
+    );
+  }
+
+  Widget _buildShimmerList() {
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+      itemCount: 5,
+      itemBuilder: (context, index) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.grey.shade100),
+          ),
+          child: Shimmer.fromColors(
+            baseColor: Colors.grey.shade200,
+            highlightColor: Colors.grey.shade100,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(height: 48, width: 48, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14))),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(height: 16, width: 120, color: Colors.white),
+                        const SizedBox(height: 6),
+                        Container(height: 12, width: 80, color: Colors.white),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Container(height: 44, width: double.infinity, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12))),
+                const SizedBox(height: 16),
+                Row(
+                  children: List.generate(3, (index) => Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(right: index == 2 ? 0 : 8),
+                      child: Container(height: 32, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10))),
+                    ),
+                  )),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
