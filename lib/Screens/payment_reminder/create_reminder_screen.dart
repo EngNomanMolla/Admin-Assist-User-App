@@ -38,9 +38,9 @@ class CreateReminderScreen extends StatelessWidget {
             ),
           ),
         ),
-        title: const Text(
-          "Create Reminder",
-          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800),
+        title: Text(
+          controller.isEditing ? "Edit Reminder" : "Create Reminder",
+          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800),
         ),
       ),
       body: SingleChildScrollView(
@@ -70,21 +70,25 @@ class CreateReminderScreen extends StatelessWidget {
                       color: const Color(0xFF7B39FD).withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.notification_add_rounded, color: Color(0xFF7B39FD), size: 28),
+                    child: Icon(
+                      controller.isEditing ? Icons.edit_note_rounded : Icons.notification_add_rounded, 
+                      color: const Color(0xFF7B39FD), 
+                      size: 28
+                    ),
                   ),
                   const SizedBox(width: 16),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "New Payment Reminder",
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF111827)),
+                          controller.isEditing ? "Edit Payment Reminder" : "New Payment Reminder",
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF111827)),
                         ),
-                        SizedBox(height: 4),
+                        const SizedBox(height: 4),
                         Text(
-                          "Fill in the details to set a reminder",
-                          style: TextStyle(fontSize: 12, color: Color(0xFF6B7280), fontWeight: FontWeight.w500),
+                          controller.isEditing ? "Modify the details of your reminder" : "Fill in the details to set a reminder",
+                          style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280), fontWeight: FontWeight.w500),
                         ),
                       ],
                     ),
@@ -160,6 +164,7 @@ class CreateReminderScreen extends StatelessWidget {
                   );
                   if (time != null) {
                     final fullDateTime = DateTime(picked.year, picked.month, picked.day, time.hour, time.minute);
+                    controller.selectedReminderDate = fullDateTime;
                     controller.dateTimeController.text = DateFormat('d MMM yy • hh:mm a').format(fullDateTime);
                   }
                 }
@@ -205,18 +210,24 @@ class CreateReminderScreen extends StatelessWidget {
             _buildTextField(controller.noteController, "Add a note...", Icons.note_add_outlined, maxLines: 3),
             
             const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: () => controller.addPaymentReminder(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF7B39FD),
-                minimumSize: const Size(double.infinity, 56),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                elevation: 0,
-              ),
-              child: const Text(
-                "Create Reminder",
-                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
-              ),
+            GetBuilder<PaymentController>(
+              builder: (controller) {
+                return ElevatedButton(
+                  onPressed: controller.isLoading ? null : () => controller.savePaymentReminder(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF7B39FD),
+                    minimumSize: const Size(double.infinity, 56),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                    elevation: 0,
+                  ),
+                  child: controller.isLoading 
+                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : Text(
+                        controller.isEditing ? "Update Reminder" : "Create Reminder",
+                        style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
+                      ),
+                );
+              }
             ),
             const SizedBox(height: 16),
             TextButton(

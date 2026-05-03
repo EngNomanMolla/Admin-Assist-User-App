@@ -101,17 +101,19 @@ class _PaymentRemainderScreenState extends State<PaymentRemainderScreen> {
               ),
 
               Expanded(
-                child: PageView(
-                  controller: _pageController,
-                  onPageChanged: (index) {
-                    controller.changeTab(index);
-                  },
-                  children: [
-                    _buildPaymentList("today"),
-                    _buildPaymentList("expire"),
-                    _buildPaymentList("next"),
-                  ],
-                ),
+                child: controller.isLoading && controller.paymentList.isEmpty
+                    ? const Center(child: CircularProgressIndicator(color: Color(0xFF7B39FD)))
+                    : PageView(
+                        controller: _pageController,
+                        onPageChanged: (index) {
+                          controller.changeTab(index);
+                        },
+                        children: [
+                          _buildPaymentList("today"),
+                          _buildPaymentList("expire"),
+                          _buildPaymentList("nextup"),
+                        ],
+                      ),
               ),
             ],
           );
@@ -121,7 +123,10 @@ class _PaymentRemainderScreenState extends State<PaymentRemainderScreen> {
         width: 52,
         height: 52,
         child: FloatingActionButton(
-          onPressed: () => Get.to(() => CreateReminderScreen()),
+          onPressed: () {
+            controller.prepareCreate();
+            Get.to(() => CreateReminderScreen());
+          },
           backgroundColor: const Color(0xFF7B39FD),
           elevation: 6,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -235,6 +240,7 @@ class PaymentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final controller = Get.find<PaymentController>();
     return GestureDetector(
       onTap: () => Get.to(() => PaymentDetailsScreen(payment: payment)),
       child: Container(
@@ -298,8 +304,15 @@ class PaymentCard extends StatelessWidget {
                                 const Icon(Icons.access_time_rounded, size: 10, color: const Color(0xFF6B7280)),
                                 const SizedBox(width: 4),
                                 Text(
-                                  payment.time,
-                                  style: const TextStyle(color: const Color(0xFF6B7280), fontSize: 11, fontWeight: FontWeight.w500),
+                                  () {
+                                    try {
+                                      DateTime dt = DateTime.parse(payment.time);
+                                      return DateFormat('d MMMM yyyy   h.mm a').format(dt);
+                                    } catch (e) {
+                                      return payment.time;
+                                    }
+                                  }(),
+                                  style: const TextStyle(color: Color(0xFF6B7280), fontSize: 11, fontWeight: FontWeight.w500),
                                 ),
                               ],
                             ),
@@ -314,7 +327,46 @@ class PaymentCard extends StatelessWidget {
                   padding: EdgeInsets.zero,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   onSelected: (value) {
-                    if (value == 'delete') onDelete();
+                    if (value == 'delete') {
+                      Get.dialog(
+                        AlertDialog(
+                          backgroundColor: Colors.white,
+                          surfaceTintColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          title: const Row(
+                            children: [
+                              Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
+                              SizedBox(width: 12),
+                              Text("Delete Reminder", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+                            ],
+                          ),
+                          content: const Text(
+                            "Are you sure you want to delete this payment reminder? This action cannot be undone.",
+                            style: TextStyle(color: Color(0xFF6B7280), fontSize: 14, fontWeight: FontWeight.w500),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Get.back(),
+                              child: const Text("Cancel", style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w700)),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                Get.back();
+                                onDelete();
+                              },
+                              style: TextButton.styleFrom(
+                                backgroundColor: Colors.red.shade50,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              child: const Text("Delete", style: TextStyle(color: Colors.red, fontWeight: FontWeight.w800)),
+                            ),
+                          ],
+                        ),
+                      );
+                    } else if (value == 'edit') {
+                      controller.prepareEdit(payment);
+                      Get.to(() => CreateReminderScreen());
+                    }
                   },
                   itemBuilder: (context) => [
                     const PopupMenuItem(
@@ -384,7 +436,13 @@ class PaymentCard extends StatelessWidget {
                     ],
                   ),
                   InkWell(
-                    onTap: () => showAddPaymentDialog(context, Get.find<PaymentController>()),
+                   onTap: () {
+                     if (payment.id != null) {
+                       showAddPaymentDialog(context, controller, payment.id!);
+                     } else {
+                       Get.snackbar("Error", "Invalid payment record", backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+                     }
+                   },
                     borderRadius: BorderRadius.circular(32),
                     child: Container(
                       height: 32,

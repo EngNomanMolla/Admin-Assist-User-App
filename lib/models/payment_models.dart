@@ -1,4 +1,5 @@
 class PaymentModel {
+  final int? id;
   final String name;
   final String mobileNo;
   final String time;
@@ -9,6 +10,7 @@ class PaymentModel {
   final String note;
 
   PaymentModel({
+    this.id,
     required this.name,
     required this.mobileNo,
     required this.time,
@@ -18,4 +20,18 @@ class PaymentModel {
     required this.repeat,
     this.note = "",
   });
+
+  factory PaymentModel.fromMap(Map<String, dynamic> map) {
+    return PaymentModel(
+      id: map['id'],
+      name: map['client_name'] ?? '',
+      mobileNo: map['mobile_no'] ?? '',
+      time: map['reminder_date'] ?? '',
+      amount: map['due_amount']?.toString() ?? '0',
+      totalAmount: map['total_amount']?.toString() ?? '0',
+      status: map['status'] ?? 'today',
+      repeat: map['repeat'] ?? 'monthly',
+      note: map['reminder_text'] ?? '',
+    );
+  }
 }

@@ -439,7 +439,13 @@ class PaymentDetailsScreen extends StatelessWidget {
           ],
         ),
         child: ElevatedButton(
-          onPressed: () => showAddPaymentDialog(context, controller),
+          onPressed: () {
+            if (payment.id != null) {
+              showAddPaymentDialog(context, controller, payment.id!);
+            } else {
+              Get.snackbar("Error", "Invalid payment record", backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+            }
+          },
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF7B39FD),
             padding: const EdgeInsets.symmetric(vertical: 16),

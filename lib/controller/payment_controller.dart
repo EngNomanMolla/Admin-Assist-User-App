@@ -1,9 +1,44 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_widgets/Models/payment_models.dart';
+import 'dart:convert';
+import 'package:flutter_widgets/provider/payment_provider.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_widgets/Models/payment_models.dart';
 
 class PaymentController extends GetxController {
+  final PaymentProvider _paymentProvider = PaymentProvider();
+  bool isLoading = false;
+  DateTime? selectedReminderDate;
+  DateTime? selectedInstallmentDate;
+  bool isEditing = false;
+  int? editingPaymentId;
+
+  @override
+  void onInit() {
+    super.onInit();
+    fetchPayments();
+  }
+
+  Future<void> fetchPayments() async {
+    try {
+      isLoading = true;
+      update();
+      final response = await _paymentProvider.getPayments();
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data is List) {
+          paymentList.assignAll(data.map((e) => PaymentModel.fromMap(e)).toList());
+        } else if (data['payment_reminders'] != null) {
+          paymentList.assignAll((data['payment_reminders'] as List).map((e) => PaymentModel.fromMap(e)).toList());
+        }
+      }
+    } catch (e) {
+      print("Error fetching payments: $e");
+    } finally {
+      isLoading = false;
+      update();
+    }
+  }
   int selectedTab = 0;
 
   var paymentList = <PaymentModel>[
@@ -70,8 +105,72 @@ class PaymentController extends GetxController {
     update();
   }
 
-  void deletePayment(PaymentModel payment) {
-    paymentList.remove(payment);
+  Future<void> deletePayment(PaymentModel payment) async {
+    if (payment.id == null) {
+      paymentList.remove(payment);
+      update();
+      return;
+    }
+
+    try {
+      isLoading = true;
+      update();
+      final response = await _paymentProvider.deletePayment(payment.id!);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        Get.snackbar(
+          "Success", 
+          "Payment reminder deleted successfully", 
+          backgroundColor: const Color(0xFF10B981).withOpacity(0.9), 
+          colorText: Colors.white,
+          icon: const Icon(Icons.check_circle_rounded, color: Colors.white),
+        );
+        fetchPayments();
+      } else {
+        Get.snackbar("Error", "Failed to delete reminder", backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+      }
+    } catch (e) {
+      print("Error deleting payment: $e");
+      Get.snackbar("Error", "Network error occurred", backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+    } finally {
+      isLoading = false;
+      update();
+    }
+  }
+
+  void prepareEdit(PaymentModel payment) {
+    isEditing = true;
+    editingPaymentId = payment.id;
+    nameController.text = payment.name;
+    mobileController.text = payment.mobileNo;
+    dueAmountController.text = payment.amount.replaceAll('\$', '').trim();
+    totalAmountController.text = payment.totalAmount.replaceAll('', '').trim();
+    noteController.text = payment.note;
+    
+    try {
+      selectedReminderDate = DateTime.parse(payment.time);
+      dateTimeController.text = DateFormat('d MMM yy • hh:mm a').format(selectedReminderDate!);
+    } catch (e) {
+      dateTimeController.text = payment.time;
+      selectedReminderDate = null;
+    }
+    
+    String? matched = repeatOptions.firstWhereOrNull((e) => e.toLowerCase() == payment.repeat.toLowerCase());
+    if (matched != null) selectedRepeat.value = matched;
+    
+    update();
+  }
+
+  void prepareCreate() {
+    isEditing = false;
+    editingPaymentId = null;
+    nameController.clear();
+    mobileController.clear();
+    dueAmountController.clear();
+    totalAmountController.clear();
+    dateTimeController.clear();
+    noteController.clear();
+    selectedReminderDate = null;
+    selectedRepeat.value = "Monthly";
     update();
   }
 
@@ -127,6 +226,49 @@ class PaymentController extends GetxController {
   double get completionPercentage =>
       (totalAmount > 0) ? (paidAmount / totalAmount).clamp(0.0, 1.0) : 0.0;
 
+  Future<void> addInstallmentPayment(int reminderId) async {
+    if (amountController.text.isNotEmpty) {
+      try {
+        isLoading = true;
+        update();
+
+        Map<String, dynamic> body = {
+          "amount": double.tryParse(amountController.text) ?? 0,
+          "payment_date": selectedInstallmentDate != null 
+              ? DateFormat('yyyy-MM-dd HH:mm:ss').format(selectedInstallmentDate!)
+              : DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
+          "status": "paid"
+        };
+
+        final response = await _paymentProvider.addPayment(reminderId, body);
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          Get.back();
+          Get.snackbar(
+            "Success", 
+            "Payment added successfully", 
+            backgroundColor: const Color(0xFF10B981).withOpacity(0.9), 
+            colorText: Colors.white,
+            icon: const Icon(Icons.check_circle_rounded, color: Colors.white),
+          );
+          fetchPayments(); 
+          amountController.clear();
+          dateController.clear();
+          selectedInstallmentDate = null;
+        } else {
+          final errorData = jsonDecode(response.body);
+          Get.snackbar("Error", errorData['message'] ?? "Failed to add payment", backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+        }
+      } catch (e) {
+        print("Error adding installment: $e");
+        Get.snackbar("Error", "Network error occurred", backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+      } finally {
+        isLoading = false;
+        update();
+      }
+    }
+  }
+
   void addHistoryPaymentFromDialog() {
     if (amountController.text.isNotEmpty && dateController.text.isNotEmpty) {
       double enteredAmount = double.tryParse(amountController.text) ?? 0;
@@ -154,33 +296,66 @@ class PaymentController extends GetxController {
     }
   }
 
-  void addPaymentReminder() {
+  Future<void> savePaymentReminder() async {
     if (nameController.text.isNotEmpty && dueAmountController.text.isNotEmpty) {
-      paymentList.insert(
-        0,
-        PaymentModel(
-          name: nameController.text,
-          mobileNo: mobileController.text,
-          time: dateTimeController.text.isEmpty
-              ? DateFormat('d MMM yy • hh:mm a').format(DateTime.now())
-              : dateTimeController.text,
-          amount: "\$${dueAmountController.text}",
-          totalAmount: "\$${totalAmountController.text.isEmpty ? dueAmountController.text : totalAmountController.text}",
-          repeat: selectedRepeat.value,
-          status: "today",
-          note: noteController.text,
-        ),
-      );
+      try {
+        isLoading = true;
+        update();
 
-      nameController.clear();
-      mobileController.clear();
-      dueAmountController.clear();
-      totalAmountController.clear();
-      dateTimeController.clear();
-      noteController.clear();
+        Map<String, dynamic> body = {
+          "client_name": nameController.text,
+          "mobile_no": mobileController.text,
+          "due_amount": double.tryParse(dueAmountController.text) ?? 0,
+          "total_amount": double.tryParse(totalAmountController.text) ?? 0,
+          "reminder_text": noteController.text,
+          "reminder_date": selectedReminderDate != null 
+              ? DateFormat('yyyy-MM-dd HH:mm:ss').format(selectedReminderDate!)
+              : DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
+          "repeat": selectedRepeat.value.toLowerCase(),
+          "status": "nextup", 
+          "notification_enabled": true,
+          "notify_before_minutes": 30,
+          "notification_title": "Payment due soon",
+          "notification_body": "Collect monthly installment from ${nameController.text}.",
+          "next_payment_date": DateFormat('yyyy-MM-dd').format(DateTime.now().add(const Duration(days: 30))),
+        };
 
-      Get.back();
-      update();
+        final response = isEditing 
+            ? await _paymentProvider.updatePayment(editingPaymentId!, body)
+            : await _paymentProvider.createPayment(body);
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          Get.back();
+          Get.snackbar(
+            "Success", 
+            isEditing ? "Reminder updated successfully" : "Reminder created successfully", 
+            backgroundColor: const Color(0xFF10B981).withOpacity(0.9), 
+            colorText: Colors.white,
+            icon: const Icon(Icons.check_circle_rounded, color: Colors.white),
+          );
+          
+          fetchPayments(); 
+
+          nameController.clear();
+          mobileController.clear();
+          dueAmountController.clear();
+          totalAmountController.clear();
+          dateTimeController.clear();
+          noteController.clear();
+          selectedReminderDate = null;
+          isEditing = false;
+          editingPaymentId = null;
+        } else {
+          final errorData = jsonDecode(response.body);
+          Get.snackbar("Error", errorData['message'] ?? "Failed to save reminder", backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+        }
+      } catch (e) {
+        print("Error saving payment: $e");
+        Get.snackbar("Error", "Network error occurred", backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+      } finally {
+        isLoading = false;
+        update();
+      }
     }
   }
 }

@@ -5,7 +5,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_widgets/controller/payment_controller.dart';
 
-void showAddPaymentDialog(BuildContext context, PaymentController controller) {
+void showAddPaymentDialog(BuildContext context, PaymentController controller, int paymentId) {
   showDialog(
     context: context,
     builder: (context) => BackdropFilter(
@@ -133,6 +133,7 @@ void showAddPaymentDialog(BuildContext context, PaymentController controller) {
                               ),
                             );
                             if (pickedDate != null) {
+                              controller.selectedInstallmentDate = pickedDate;
                               controller.dateController.text = DateFormat('MMMM d, yyyy').format(pickedDate);
                             }
                           },
@@ -164,15 +165,21 @@ void showAddPaymentDialog(BuildContext context, PaymentController controller) {
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: ElevatedButton(
-                              onPressed: () => controller.addHistoryPaymentFromDialog(),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF7B39FD),
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                elevation: 0,
-                              ),
-                              child: const Text("Add Payment", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+                            child: GetBuilder<PaymentController>(
+                              builder: (controller) {
+                                return ElevatedButton(
+                                  onPressed: controller.isLoading ? null : () => controller.addInstallmentPayment(paymentId),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF7B39FD),
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                    elevation: 0,
+                                  ),
+                                  child: controller.isLoading 
+                                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                    : const Text("Add Payment", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+                                );
+                              }
                             ),
                           ),
                         ],
