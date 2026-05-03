@@ -101,7 +101,7 @@ class _PaymentRemainderScreenState extends State<PaymentRemainderScreen> {
               ),
 
               Expanded(
-                child: controller.isLoading && controller.paymentList.isEmpty
+                child: controller.isLoading.value && controller.paymentList.isEmpty
                     ? const Center(child: CircularProgressIndicator(color: Color(0xFF7B39FD)))
                     : PageView(
                         controller: _pageController,
@@ -435,31 +435,90 @@ class PaymentCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  InkWell(
-                   onTap: () {
-                     if (payment.id != null) {
-                       showAddPaymentDialog(context, controller, payment.id!);
-                     } else {
-                       Get.snackbar("Error", "Invalid payment record", backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
-                     }
-                   },
-                    borderRadius: BorderRadius.circular(32),
-                    child: Container(
-                      height: 32,
-                      width: 32,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.04),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
-                          )
-                        ]
+                  Row(
+                    children: [
+                      // Next (Reschedule) Button
+                      InkWell(
+                        onTap: () async {
+                          if (payment.id == null) return;
+                          
+                          DateTime? pickedDate = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now(),
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime(2101),
+                            builder: (context, child) => Theme(
+                              data: Theme.of(context).copyWith(
+                                colorScheme: const ColorScheme.light(primary: Color(0xFF7B39FD)),
+                              ),
+                              child: child!,
+                            ),
+                          );
+
+                          if (pickedDate != null) {
+                            TimeOfDay? pickedTime = await showTimePicker(
+                              context: context,
+                              initialTime: TimeOfDay.now(),
+                              builder: (context, child) => Theme(
+                                data: Theme.of(context).copyWith(
+                                  colorScheme: const ColorScheme.light(primary: Color(0xFF7B39FD)),
+                                ),
+                                child: child!,
+                              ),
+                            );
+
+                            if (pickedTime != null) {
+                              final fullDateTime = DateTime(
+                                pickedDate.year,
+                                pickedDate.month,
+                                pickedDate.day,
+                                pickedTime.hour,
+                                pickedTime.minute,
+                              );
+                              controller.reschedulePayment(payment, fullDateTime);
+                            }
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(32),
+                        child: Container(
+                          height: 32,
+                          width: 32,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF7B39FD).withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.update_rounded, color: Color(0xFF7B39FD), size: 18),
+                        ),
                       ),
-                      child: const Icon(Icons.add_rounded, color: const Color(0xFF111827), size: 18),
-                    ),
+                      const SizedBox(width: 10),
+                      // Add Payment Button
+                      InkWell(
+                       onTap: () {
+                         if (payment.id != null) {
+                           showAddPaymentDialog(context, controller, payment.id!);
+                         } else {
+                           Get.snackbar("Error", "Invalid payment record", backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+                         }
+                       },
+                        borderRadius: BorderRadius.circular(32),
+                        child: Container(
+                          height: 32,
+                          width: 32,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.04),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              )
+                            ]
+                          ),
+                          child: const Icon(Icons.add_rounded, color: Color(0xFF7B39FD), size: 20),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

@@ -7,11 +7,14 @@ import 'package:flutter_widgets/Models/payment_models.dart';
 
 class PaymentController extends GetxController {
   final PaymentProvider _paymentProvider = PaymentProvider();
-  bool isLoading = false;
+  var isLoading = false.obs;
   DateTime? selectedReminderDate;
   DateTime? selectedInstallmentDate;
   bool isEditing = false;
   int? editingPaymentId;
+
+  var selectedPaymentDetails = Rxn<PaymentModel>();
+  var paymentSummary = Rxn<PaymentSummaryModel>();
 
   @override
   void onInit() {
@@ -21,7 +24,7 @@ class PaymentController extends GetxController {
 
   Future<void> fetchPayments() async {
     try {
-      isLoading = true;
+      isLoading.value = true;
       update();
       final response = await _paymentProvider.getPayments();
       if (response.statusCode == 200) {
@@ -35,7 +38,31 @@ class PaymentController extends GetxController {
     } catch (e) {
       print("Error fetching payments: $e");
     } finally {
-      isLoading = false;
+      isLoading.value = false;
+      update();
+    }
+  }
+
+  Future<void> fetchPaymentDetails(int id) async {
+    try {
+      isLoading.value = true;
+      selectedPaymentDetails.value = null; // Clear old data
+      paymentSummary.value = null;
+      update();
+      final response = await _paymentProvider.getPaymentDetails(id);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['reminder'] != null) {
+          selectedPaymentDetails.value = PaymentModel.fromMap(data['reminder']);
+        }
+        if (data['summary'] != null) {
+          paymentSummary.value = PaymentSummaryModel.fromMap(data['summary']);
+        }
+      }
+    } catch (e) {
+      print("Error fetching payment details: $e");
+    } finally {
+      isLoading.value = false;
       update();
     }
   }
@@ -113,7 +140,7 @@ class PaymentController extends GetxController {
     }
 
     try {
-      isLoading = true;
+      isLoading.value = true;
       update();
       final response = await _paymentProvider.deletePayment(payment.id!);
       if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -132,7 +159,7 @@ class PaymentController extends GetxController {
       print("Error deleting payment: $e");
       Get.snackbar("Error", "Network error occurred", backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
     } finally {
-      isLoading = false;
+      isLoading.value = false;
       update();
     }
   }
@@ -229,7 +256,7 @@ class PaymentController extends GetxController {
   Future<void> addInstallmentPayment(int reminderId) async {
     if (amountController.text.isNotEmpty) {
       try {
-        isLoading = true;
+        isLoading.value = true;
         update();
 
         Map<String, dynamic> body = {
@@ -263,7 +290,7 @@ class PaymentController extends GetxController {
         print("Error adding installment: $e");
         Get.snackbar("Error", "Network error occurred", backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
       } finally {
-        isLoading = false;
+        isLoading.value = false;
         update();
       }
     }
@@ -299,7 +326,7 @@ class PaymentController extends GetxController {
   Future<void> savePaymentReminder() async {
     if (nameController.text.isNotEmpty && dueAmountController.text.isNotEmpty) {
       try {
-        isLoading = true;
+        isLoading.value = true;
         update();
 
         Map<String, dynamic> body = {
@@ -353,9 +380,54 @@ class PaymentController extends GetxController {
         print("Error saving payment: $e");
         Get.snackbar("Error", "Network error occurred", backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
       } finally {
-        isLoading = false;
+        isLoading.value = false;
         update();
       }
+    }
+  }
+
+  Future<void> reschedulePayment(PaymentModel payment, DateTime newDate) async {
+    try {
+      isLoading.value = true;
+      update();
+
+      Map<String, dynamic> body = {
+        "client_name": payment.name,
+        "mobile_no": payment.mobileNo,
+        "due_amount": double.tryParse(payment.amount.replaceAll('\$', '').replaceAll(',', '').trim()) ?? 0,
+        "total_amount": double.tryParse(payment.totalAmount.replaceAll('\$', '').replaceAll(',', '').trim()) ?? 0,
+        "reminder_text": payment.note,
+        "reminder_date": DateFormat('yyyy-MM-dd HH:mm:ss').format(newDate),
+        "repeat": payment.repeat.toLowerCase(),
+        "status": "nextup", 
+        "notification_enabled": true,
+        "notify_before_minutes": 30,
+        "notification_title": "Payment due soon",
+        "notification_body": "Collect monthly installment from ${payment.name}.",
+        "next_payment_date": DateFormat('yyyy-MM-dd').format(newDate.add(const Duration(days: 30))),
+      };
+
+      final response = await _paymentProvider.updatePayment(payment.id!, body);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        Get.snackbar(
+          "Success", 
+          "Payment rescheduled successfully", 
+          backgroundColor: const Color(0xFF10B981).withOpacity(0.9), 
+          colorText: Colors.white,
+          icon: const Icon(Icons.event_available_rounded, color: Colors.white),
+        );
+        fetchPayments();
+      } else {
+        final errorData = jsonDecode(response.body);
+        Get.snackbar("Error", errorData['message'] ?? "Failed to reschedule", backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+      }
+    } catch (e) {
+      print("Error rescheduling: $e");
+      Get.snackbar("Error", "Network error occurred", backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+    } finally {
+      isLoading.value = false;
+      update();
     }
   }
 }

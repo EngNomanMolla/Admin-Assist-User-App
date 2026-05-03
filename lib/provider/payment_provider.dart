@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 class PaymentProvider extends ApiProvider {
   Future<http.Response> getPayments() => getRequest('/payment_reminders');
 
+  Future<http.Response> getPaymentDetails(int id) => getRequest('/payment_reminders/$id');
+
   Future<http.Response> createPayment(Map<String, dynamic> data) =>
       postRequest('/payment_reminders', data);
 

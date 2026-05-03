@@ -168,16 +168,23 @@ void showAddPaymentDialog(BuildContext context, PaymentController controller, in
                             child: GetBuilder<PaymentController>(
                               builder: (controller) {
                                 return ElevatedButton(
-                                  onPressed: controller.isLoading ? null : () => controller.addInstallmentPayment(paymentId),
+                                  onPressed: controller.isLoading.value ? null : () => controller.addInstallmentPayment(paymentId),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF7B39FD),
                                     padding: const EdgeInsets.symmetric(vertical: 16),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                                     elevation: 0,
                                   ),
-                                  child: controller.isLoading 
-                                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                    : const Text("Add Payment", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+                                  child: Obx(() => controller.isLoading.value
+                                    ? const SizedBox(
+                                        height: 20,
+                                        width: 20,
+                                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                      )
+                                    : const Text(
+                                        "Add Payment",
+                                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16),
+                                      )),
                                 );
                               }
                             ),

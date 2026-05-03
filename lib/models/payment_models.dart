@@ -8,6 +8,7 @@ class PaymentModel {
   final String status;
   final String repeat;
   final String note;
+  final List<PaymentRecordModel>? records;
 
   PaymentModel({
     this.id,
@@ -19,6 +20,7 @@ class PaymentModel {
     required this.status,
     required this.repeat,
     this.note = "",
+    this.records,
   });
 
   factory PaymentModel.fromMap(Map<String, dynamic> map) {
@@ -32,6 +34,57 @@ class PaymentModel {
       status: map['status'] ?? 'today',
       repeat: map['repeat'] ?? 'monthly',
       note: map['reminder_text'] ?? '',
+      records: map['records'] != null
+          ? (map['records'] as List)
+              .map((e) => PaymentRecordModel.fromMap(e))
+              .toList()
+          : null,
+    );
+  }
+}
+
+class PaymentRecordModel {
+  final int id;
+  final double amount;
+  final String date;
+  final String status;
+
+  PaymentRecordModel({
+    required this.id,
+    required this.amount,
+    required this.date,
+    required this.status,
+  });
+
+  factory PaymentRecordModel.fromMap(Map<String, dynamic> map) {
+    return PaymentRecordModel(
+      id: map['id'],
+      amount: double.tryParse(map['amount']?.toString() ?? '0') ?? 0.0,
+      date: map['payment_date'] ?? '',
+      status: map['status'] ?? '',
+    );
+  }
+}
+
+class PaymentSummaryModel {
+  final double totalAmount;
+  final double paidAmount;
+  final double remainingAmount;
+  final double progressPercentage;
+
+  PaymentSummaryModel({
+    required this.totalAmount,
+    required this.paidAmount,
+    required this.remainingAmount,
+    required this.progressPercentage,
+  });
+
+  factory PaymentSummaryModel.fromMap(Map<String, dynamic> map) {
+    return PaymentSummaryModel(
+      totalAmount: double.tryParse(map['total_amount']?.toString() ?? '0') ?? 0.0,
+      paidAmount: double.tryParse(map['paid_amount']?.toString() ?? '0') ?? 0.0,
+      remainingAmount: double.tryParse(map['remaining_amount']?.toString() ?? '0') ?? 0.0,
+      progressPercentage: double.tryParse(map['progress_percentage']?.toString() ?? '0') ?? 0.0,
     );
   }
 }

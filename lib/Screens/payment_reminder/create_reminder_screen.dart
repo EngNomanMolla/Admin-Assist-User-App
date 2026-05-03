@@ -213,19 +213,23 @@ class CreateReminderScreen extends StatelessWidget {
             GetBuilder<PaymentController>(
               builder: (controller) {
                 return ElevatedButton(
-                  onPressed: controller.isLoading ? null : () => controller.savePaymentReminder(),
+                  onPressed: controller.isLoading.value ? null : () => controller.savePaymentReminder(),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF7B39FD),
                     minimumSize: const Size(double.infinity, 56),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                     elevation: 0,
                   ),
-                  child: controller.isLoading 
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : Text(
-                        controller.isEditing ? "Update Reminder" : "Create Reminder",
-                        style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
-                      ),
+                  child: Obx(() => controller.isLoading.value
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                    )
+                  : Text(
+                      controller.isEditing ? "Update Reminder" : "Create Reminder",
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16),
+                    )),
                 );
               }
             ),
