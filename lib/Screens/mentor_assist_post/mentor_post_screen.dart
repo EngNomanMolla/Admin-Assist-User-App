@@ -149,11 +149,29 @@ class _MentorPostCardState extends State<MentorPostCard> {
     }
   }
 
+  String _getYoutubeThumbnail(String url) {
+    if (url.isEmpty) return '';
+    try {
+      final Uri uri = Uri.parse(url);
+      String? videoId;
+      if (uri.host.contains('youtube.com')) {
+        videoId = uri.queryParameters['v'];
+      } else if (uri.host.contains('youtu.be')) {
+        videoId = uri.pathSegments.isNotEmpty ? uri.pathSegments[0] : null;
+      }
+      if (videoId != null && videoId.isNotEmpty) {
+        return 'https://img.youtube.com/vi/$videoId/0.jpg';
+      }
+    } catch (e) {}
+    return '';
+  }
+
   @override
   Widget build(BuildContext context) {
     var post = widget.post;
     String subtitle = post['subtitle'] ?? '';
     bool isLongText = subtitle.length > 100;
+    String youtubeThumb = _getYoutubeThumbnail(post['videoUrl'] ?? '');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -327,15 +345,40 @@ class _MentorPostCardState extends State<MentorPostCard> {
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
+                      youtubeThumb.isNotEmpty 
+                        ? Image.network(
+                            youtubeThumb,
+                            height: 180,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => Container(
+                              height: 180,
+                              width: double.infinity,
+                              color: const Color(0xFFF3F4F6),
+                              child: const Icon(Icons.video_library_rounded, color: Color(0xFF9CA3AF), size: 40),
+                            ),
+                          )
+                        : Container(
+                            height: 180,
+                            width: double.infinity,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFF3F4F6),
+                              image: DecorationImage(
+                                image: AssetImage('assets/images/postpic.png'),
+                                fit: BoxFit.cover,
+                                opacity: 0.6,
+                              ),
+                            ),
+                          ),
+                      // Overlay gradient for better icon visibility
                       Container(
                         height: 180,
                         width: double.infinity,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFF3F4F6),
-                          image: DecorationImage(
-                            image: AssetImage('assets/images/postpic.png'),
-                            fit: BoxFit.cover,
-                            opacity: 0.6,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Colors.black.withOpacity(0.1), Colors.black.withOpacity(0.4)],
                           ),
                         ),
                       ),
