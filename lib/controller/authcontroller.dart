@@ -25,6 +25,7 @@ class AuthController extends GetxController {
 
   final newPasswordController = TextEditingController();
   final rewritePasswordController = TextEditingController();
+  final deletePasswordController = TextEditingController();
 
   var isPasswordVisible = false.obs;
   var isRememberMeChecked = false.obs;
@@ -238,9 +239,44 @@ class AuthController extends GetxController {
     }
   }
 
-  void resendCode() {
-    print("Resending OTP code...");
-    Get.snackbar("Success", "OTP Resent Successfully", snackPosition: SnackPosition.BOTTOM);
+  void resendCode() async {
+    String email = emailController.text.trim();
+    if (email.isEmpty) {
+      Get.snackbar("Error", "Email not found. Please try logging in again.", 
+        snackPosition: SnackPosition.BOTTOM);
+      return;
+    }
+
+    try {
+      isLoading.value = true;
+      Get.dialog(
+        const Center(child: CircularProgressIndicator(color: Color(0xFF7B39FD))),
+        barrierDismissible: false,
+      );
+
+      final response = await _authProvider.resendOTP(email);
+      
+      Get.back(); // Close loading dialog
+      isLoading.value = false;
+
+      if (response.statusCode == 200) {
+        Get.snackbar("Success", "OTP Resent Successfully", 
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.withOpacity(0.1),
+          colorText: Colors.green);
+      } else {
+        final error = jsonDecode(response.body);
+        Get.snackbar("Failed", error['message'] ?? "Could not resend code", 
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.withOpacity(0.1),
+          colorText: Colors.red);
+      }
+    } catch (e) {
+      if (Get.isDialogOpen!) Get.back();
+      isLoading.value = false;
+      print("Resend Error: $e");
+      Get.snackbar("Error", "Something went wrong", snackPosition: SnackPosition.BOTTOM);
+    }
   }
 
   void continueWithGoogle() {
@@ -306,6 +342,51 @@ class AuthController extends GetxController {
     }
   }
 
+  Future<void> deleteAccount() async {
+    String password = deletePasswordController.text.trim();
+    if (password.isEmpty) {
+      Get.snackbar("Error", "Please enter your password", snackPosition: SnackPosition.BOTTOM);
+      return;
+    }
+
+    try {
+      isLoading.value = true;
+      Get.dialog(
+        const Center(child: CircularProgressIndicator(color: Color(0xFF7B39FD))),
+        barrierDismissible: false,
+      );
+
+      final response = await _authProvider.deleteAccount(password);
+      
+      Get.back(); // Close loading dialog
+      isLoading.value = false;
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        _storage.write('isLoggedIn', false);
+        _storage.remove('token');
+        _storage.remove('userData');
+        deletePasswordController.clear();
+        
+        Get.offAllNamed('/login');
+        Get.snackbar("Success", "Account deleted successfully", 
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.withOpacity(0.1),
+          colorText: Colors.green);
+      } else {
+        final error = jsonDecode(response.body);
+        Get.snackbar("Error", error['message'] ?? "Failed to delete account", 
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.withOpacity(0.1),
+          colorText: Colors.red);
+      }
+    } catch (e) {
+      if (Get.isDialogOpen!) Get.back();
+      isLoading.value = false;
+      print("Delete Error: $e");
+      Get.snackbar("Error", "Something went wrong", snackPosition: SnackPosition.BOTTOM);
+    }
+  }
+
   @override
   void onClose() {
     mobileController.dispose();
@@ -317,6 +398,7 @@ class AuthController extends GetxController {
     forgotEmailPhoneController.dispose();
     newPasswordController.dispose();
     rewritePasswordController.dispose();
+    deletePasswordController.dispose();
 
     for (var controller in otpControllers) {
       controller.dispose();

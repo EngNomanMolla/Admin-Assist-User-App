@@ -13,6 +13,7 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ProfileController controller = Get.put(ProfileController());
+    Get.put(AuthController()); // Ensure AuthController is available for logout/delete
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
       body: Obx(() {
@@ -253,7 +254,7 @@ class ProfileScreen extends StatelessWidget {
                 child: _buildSmallActionButton(
                   label: "Logout",
                   color: const Color(0xFFF59E0B), 
-                  onTap: () => _handleLogout(),
+                  onTap: () => _showLogoutDialog(context),
                 ),
               ),
               const SizedBox(width: 12),
@@ -369,12 +370,8 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  void _handleLogout() {
-    final AuthController authController = Get.put(AuthController());
-    authController.logout();
-  }
-
-  void _showDeleteDialog(BuildContext context) {
+  void _showLogoutDialog(BuildContext context) {
+    final AuthController authController = Get.find<AuthController>();
     Get.dialog(
       Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -382,6 +379,84 @@ class ProfileScreen extends StatelessWidget {
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFBE9E7),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.logout_rounded, color: Color(0xFFF59E0B), size: 32),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                "Confirm Logout",
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF1F2937),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                "Are you sure you want to log out from your account?",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Color(0xFF6B7280),
+                  fontSize: 14,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Get.back(),
+                      child: const Text(
+                        "Cancel",
+                        style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Get.back();
+                        authController.logout();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFF59E0B),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        "Logout",
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showDeleteDialog(BuildContext context) {
+    final AuthController authController = Get.find<AuthController>();
+    Get.dialog(
+      Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 padding: const EdgeInsets.all(16),
@@ -412,6 +487,7 @@ class ProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               TextField(
+                controller: authController.deletePasswordController,
                 obscureText: true,
                 decoration: InputDecoration(
                   hintText: "Enter Password",
@@ -430,7 +506,10 @@ class ProfileScreen extends StatelessWidget {
                 children: [
                   Expanded(
                     child: TextButton(
-                      onPressed: () => Get.back(),
+                      onPressed: () {
+                        authController.deletePasswordController.clear();
+                        Get.back();
+                      },
                       child: const Text(
                         "Cancel",
                         style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w700),
@@ -440,7 +519,7 @@ class ProfileScreen extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () => authController.deleteAccount(),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFEF4444),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -459,6 +538,7 @@ class ProfileScreen extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

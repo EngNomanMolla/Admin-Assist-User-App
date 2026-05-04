@@ -20,10 +20,7 @@ class Product {
   final int id;
   final String name;
   final String categoryId;
-  final String size;
-  final String material;
-  final String color;
-  final String quality;
+  final String link;
   final String image;
   final String? description;
   final Category category;
@@ -32,10 +29,7 @@ class Product {
     required this.id,
     required this.name,
     required this.categoryId,
-    required this.size,
-    required this.material,
-    required this.color,
-    required this.quality,
+    required this.link,
     required this.image,
     this.description,
     required this.category,
@@ -46,10 +40,7 @@ class Product {
       id: json['id'],
       name: json['name'],
       categoryId: json['category_id'].toString(),
-      size: json['size'] ?? 'N/A',
-      material: json['material'] ?? 'N/A',
-      color: json['color'] ?? 'N/A',
-      quality: json['quality'] ?? 'N/A',
+      link: json['link'] ?? '',
       image: json['image'],
       description: json['description'],
       category: Category.fromJson(json['category']),

@@ -92,4 +92,19 @@ class ApiProvider {
       rethrow;
     }
   }
+
+  Future<http.Response> deleteRequest(String endpoint, Map<String, dynamic> body) async {
+    final url = Uri.parse('$baseUrl$endpoint');
+    try {
+      final response = await http.delete(
+        url,
+        headers: _headers,
+        body: jsonEncode(body),
+      );
+      return response;
+    } catch (e) {
+      print('API Delete Error: $e');
+      rethrow;
+    }
+  }
 }

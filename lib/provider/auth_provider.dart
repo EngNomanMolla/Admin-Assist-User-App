@@ -28,4 +28,16 @@ class AuthProvider extends ApiProvider {
 
   // Logout request
   Future<http.Response> logout() => postRequest('/logout', {});
+
+  // Delete Account request
+  Future<http.Response> deleteAccount(String password) => deleteRequest(
+        '/user',
+        {'password': password},
+      );
+
+  // Resend OTP request
+  Future<http.Response> resendOTP(String email) => postRequest(
+        '/user/login/email',
+        {'email': email},
+      );
 }

@@ -1,17 +1,16 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_widgets/controller/product_controller.dart';
-import 'package:flutter_widgets/screens/targetbox_product/product_details_screen.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ProductScreen extends StatelessWidget {
   ProductScreen({super.key});
 
   final ProductController controller = Get.put(ProductController());
   final TextEditingController _searchController = TextEditingController();
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -230,11 +229,35 @@ class ProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () => Get.to(() => ProductDetailsScreen(product: product)),
+      onTap: () async {
+        if (product.link.isEmpty) {
+          Get.snackbar("Notice", "No link available for this product", 
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.white,
+            colorText: Colors.black);
+          return;
+        }
+        final Uri url = Uri.parse(product.link.trim());
+        try {
+          if (await canLaunchUrl(url)) {
+            await launchUrl(url, mode: LaunchMode.externalApplication);
+          } else {
+            Get.snackbar("Error", "Could not launch product link", 
+              snackPosition: SnackPosition.BOTTOM,
+              backgroundColor: Colors.red.shade50,
+              colorText: Colors.red);
+          }
+        } catch (e) {
+          Get.snackbar("Error", "Invalid link format", 
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.red.shade50,
+            colorText: Colors.red);
+        }
+      },
       borderRadius: BorderRadius.circular(20),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
@@ -255,8 +278,8 @@ class ProductCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Container(
-                    width: 100,
-                    height: 110,
+                    width: 90,
+                    height: 90,
                     decoration: BoxDecoration(
                       color: const Color(0xFFF9FAFB),
                       borderRadius: BorderRadius.circular(16),
@@ -301,74 +324,53 @@ class ProductCard extends StatelessWidget {
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(child: _buildSpecBadge(Icons.texture_rounded, "Material", product.material)),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Expanded(child: _buildSpecBadge(Icons.straighten_rounded, "Size", product.size)),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Expanded(child: _buildSpecBadge(Icons.palette_rounded, "Color", product.color)),
-                          ],
-                        ),
+                        const SizedBox(height: 8),
+                        if (product.description != null && product.description!.isNotEmpty)
+                          Text(
+                            product.description!,
+                            style: const TextStyle(
+                              color: Color(0xFF6B7280),
+                              fontSize: 11,
+                              height: 1.4,
+                            ),
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                       ],
                     ),
                   ),
 
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF9FAFB),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.grey.shade200),
-                        ),
-                        child: const Icon(
-                          Icons.north_east_rounded,
-                          size: 16,
-                          color: Color(0xFF6B7280),
-                        ),
-                      ),
-                    ],
-                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF10B981).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    product.quality,
-                    style: const TextStyle(
-                      color: Color(0xFF10B981),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
                 InkWell(
-                  onTap: () => Get.to(() => ProductDetailsScreen(product: product)),
+                  onTap: () async {
+                    if (product.link.isEmpty) {
+                      Get.snackbar("Notice", "No link available", 
+                        snackPosition: SnackPosition.BOTTOM);
+                      return;
+                    }
+                    final Uri url = Uri.parse(product.link.trim());
+                    try {
+                      if (await canLaunchUrl(url)) {
+                        await launchUrl(url, mode: LaunchMode.externalApplication);
+                      } else {
+                        Get.snackbar("Error", "Could not open link", 
+                          snackPosition: SnackPosition.BOTTOM);
+                      }
+                    } catch (e) {
+                      Get.snackbar("Error", "Invalid link", 
+                        snackPosition: SnackPosition.BOTTOM);
+                    }
+                  },
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     decoration: BoxDecoration(
                       color: const Color(0xFF7B39FD),
                       borderRadius: BorderRadius.circular(12),
@@ -404,29 +406,4 @@ class ProductCard extends StatelessWidget {
     );
   }
 
-  Widget _buildSpecBadge(IconData icon, String label, String value) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 12, color: const Color(0xFF9CA3AF)),
-        const SizedBox(width: 4),
-        Text(
-          "$label: ",
-          style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 11),
-        ),
-        Flexible(
-          child: Text(
-            value,
-            style: const TextStyle(
-              color: Color(0xFF374151), 
-              fontSize: 11, 
-              fontWeight: FontWeight.w600,
-            ),
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
-          ),
-        ),
-      ],
-    );
-  }
 }

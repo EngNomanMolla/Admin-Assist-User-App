@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_widgets/controller/product_controller.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ProductDetailsScreen extends StatelessWidget {
   final Product product;
@@ -104,48 +105,25 @@ class ProductDetailsScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              product.name,
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF111827),
-                                height: 1.2,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              product.category.name,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Color(0xFF6B7280),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
+                      Text(
+                        product.name,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF111827),
+                          height: 1.2,
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF10B981).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          product.quality,
-                          style: const TextStyle(
-                            color: Color(0xFF10B981),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
+                      const SizedBox(height: 6),
+                      Text(
+                        product.category.name,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF6B7280),
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
@@ -170,29 +148,6 @@ class ProductDetailsScreen extends StatelessWidget {
                       ),
                     ),
                   ],
-                  const SizedBox(height: 24),
-                  const Text(
-                    "Specifications",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF374151),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(child: _buildDetailBadge(Icons.texture_rounded, "Material", product.material)),
-                      const SizedBox(width: 12),
-                      Expanded(child: _buildDetailBadge(Icons.straighten_rounded, "Size", product.size)),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(child: _buildDetailBadge(Icons.palette_rounded, "Color", product.color)),
-                    ],
-                  ),
                 ],
               ),
             ),
@@ -212,8 +167,13 @@ class ProductDetailsScreen extends StatelessWidget {
           ],
         ),
         child: InkWell(
-          onTap: () {
-            // Implement buy logic
+          onTap: () async {
+            final Uri url = Uri.parse(product.link);
+            if (await canLaunchUrl(url)) {
+              await launchUrl(url, mode: LaunchMode.externalApplication);
+            } else {
+              Get.snackbar("Error", "Could not open the link", snackPosition: SnackPosition.BOTTOM);
+            }
           },
           borderRadius: BorderRadius.circular(16),
           child: Container(

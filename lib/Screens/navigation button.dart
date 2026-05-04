@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_widgets/screens/calculator_screen/calculator_screen.dart';
 import 'package:flutter_widgets/screens/profile/profile_screen.dart';
-import 'package:flutter_widgets/Screens/home_screen.dart';
+import 'package:flutter_widgets/screens/home_screen.dart';
 import 'package:flutter_widgets/screens/career_update/job_circular_screen.dart';
 import 'package:get/get.dart';
 
