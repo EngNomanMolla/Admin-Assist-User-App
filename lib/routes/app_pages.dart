@@ -6,7 +6,8 @@ import 'package:flutter_widgets/screens/login_screens/forgot_password_screen.dar
 import 'package:flutter_widgets/screens/login_screens/login_screen.dart';
 import 'package:flutter_widgets/screens/login_screens/otp_verification_screen.dart';
 import 'package:flutter_widgets/screens/login_screens/signup_screen.dart';
-import 'package:flutter_widgets/screens/navigation%20button.dart';
+import 'package:flutter_widgets/screens/navigation button.dart';
+import 'package:flutter_widgets/controller/auth_binding.dart';
 
 class AppPages {
   static String get INITIAL {
@@ -21,22 +22,27 @@ class AppPages {
     GetPage(
       name: AppRoutes.LOGIN,
       page: () => const LoginScreen(),
+      binding: AuthBinding(),
     ),
     GetPage(
       name: AppRoutes.SIGNUP,
       page: () => const SignupScreen(),
+      binding: AuthBinding(),
     ),
     GetPage(
       name: AppRoutes.FORGOT_PASSWORD,
       page: () => const ForgotPasswordScreen(),
+      binding: AuthBinding(),
     ),
     GetPage(
       name: AppRoutes.OTP_VERIFICATION,
       page: () => const OTPVerificationScreen(),
+      binding: AuthBinding(),
     ),
     GetPage(
       name: AppRoutes.RESET_PASSWORD,
       page: () => const ResetPasswordScreen(),
+      binding: AuthBinding(),
     ),
     GetPage(
       name: AppRoutes.NAVIGATION,

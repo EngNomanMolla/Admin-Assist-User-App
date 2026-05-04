@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_widgets/provider/auth_provider.dart';
-import 'package:flutter_widgets/Screens/login_screens/email_verification_screen.dart';
-import 'package:flutter_widgets/screens/navigation%20button.dart';
+import 'package:flutter_widgets/screens/login_screens/email_verification_screen.dart';
+import 'package:flutter_widgets/screens/navigation button.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 
@@ -20,8 +20,8 @@ class AuthController extends GetxController {
 
   final forgotEmailPhoneController = TextEditingController();
 
-  final otpControllers = List.generate(6, (index) => TextEditingController());
-  final otpFocusNodes = List.generate(6, (index) => FocusNode());
+  final otpControllers = List.generate(4, (index) => TextEditingController());
+  final otpFocusNodes = List.generate(4, (index) => FocusNode());
 
   final newPasswordController = TextEditingController();
   final rewritePasswordController = TextEditingController();
@@ -96,7 +96,7 @@ class AuthController extends GetxController {
           _storage.remove('savedPassword');
         }
         
-        Get.snackbar("Success", "Logged in successfully", snackPosition: SnackPosition.BOTTOM);
+        // Get.snackbar("Success", "Logged in successfully", snackPosition: SnackPosition.BOTTOM);
         Get.offAll(() => const NavigationScreen());
       } else {
         final error = jsonDecode(response.body);
@@ -115,9 +115,58 @@ class AuthController extends GetxController {
     }
   }
 
-  void signup() {
-    print("Signing up user: ${nameController.text}");
-    Get.to(() => const EmailVerificationScreen());
+  void signup() async {
+    String name = nameController.text.trim();
+    String email = emailController.text.trim();
+    String phone = signupPhoneController.text.trim();
+    String password = signupPasswordController.text.trim();
+
+    if (name.isEmpty || email.isEmpty || phone.isEmpty || password.isEmpty) {
+      Get.snackbar(
+        "Error",
+        "Please fill all fields",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withOpacity(0.1),
+        colorText: Colors.red,
+      );
+      return;
+    }
+
+    try {
+      isLoading.value = true;
+      final response = await _authProvider.signup({
+        'name': name,
+        'email': email,
+        'phone': phone,
+        'password': password,
+      });
+
+      isLoading.value = false;
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        Get.snackbar(
+          "Success",
+          "Account created successfully. Verification code sent to your email.",
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.withOpacity(0.1),
+          colorText: Colors.green,
+        );
+        Get.to(() => const EmailVerificationScreen());
+      } else {
+        final error = jsonDecode(response.body);
+        Get.snackbar(
+          "Registration Failed",
+          error['message'] ?? "Something went wrong",
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.withOpacity(0.1),
+          colorText: Colors.red,
+        );
+      }
+    } catch (e) {
+      isLoading.value = false;
+      Get.snackbar("Error", "Something went wrong. Please try again.", snackPosition: SnackPosition.BOTTOM);
+      print("Signup Error: $e");
+    }
   }
 
   void sendResetLink() {
@@ -142,10 +191,10 @@ class AuthController extends GetxController {
     String otp = otpControllers.map((e) => e.text).join();
     String email = emailController.text.trim();
 
-    if (otp.length < 6) {
+    if (otp.length < 4) {
       Get.snackbar(
         "Error",
-        "Please enter all 6 digits",
+        "Please enter all 4 digits",
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red.withOpacity(0.1),
         colorText: Colors.red,
@@ -166,7 +215,7 @@ class AuthController extends GetxController {
       isLoading.value = false;
 
       if (response.statusCode == 200) {
-        Get.snackbar("Success", "Email verified successfully", snackPosition: SnackPosition.BOTTOM);
+        // Get.snackbar("Success", "Email verified successfully", snackPosition: SnackPosition.BOTTOM);
         for (var c in otpControllers) {
           c.clear();
         }

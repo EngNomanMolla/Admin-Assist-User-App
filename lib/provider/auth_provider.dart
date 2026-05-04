@@ -12,7 +12,7 @@ class AuthProvider extends ApiProvider {
       );
 
   // Signup request
-  Future<http.Response> signup(Map<String, dynamic> data) => postRequest('/signup', data);
+  Future<http.Response> signup(Map<String, dynamic> data) => postRequest('/user/register', data);
 
   // OTP Verification
   Future<http.Response> verifyOTP(String email, String otp) => postRequest(

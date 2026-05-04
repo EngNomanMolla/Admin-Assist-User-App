@@ -50,7 +50,7 @@ class EmailVerificationScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  "Please enter the 6-digit code sent to your email address.",
+                  "Please enter the 4-digit code sent to your email address.",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Color(0xFF6B7280),
@@ -62,11 +62,11 @@ class EmailVerificationScreen extends StatelessWidget {
 
                 // OTP Fields
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: List.generate(6, (index) {
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: List.generate(4, (index) {
                     return SizedBox(
-                      width: 50,
-                      height: 60,
+                      width: 60,
+                      height: 70,
                       child: TextField(
                         controller: controller.otpControllers[index],
                         focusNode: controller.otpFocusNodes[index],
@@ -74,7 +74,7 @@ class EmailVerificationScreen extends StatelessWidget {
                         keyboardType: TextInputType.number,
                         maxLength: 1,
                         style: const TextStyle(
-                          fontSize: 24,
+                          fontSize: 28,
                           fontWeight: FontWeight.w700,
                           color: Color(0xFF1F2937),
                         ),
@@ -95,12 +95,12 @@ class EmailVerificationScreen extends StatelessWidget {
                           ),
                         ),
                         onChanged: (value) {
-                          if (value.isNotEmpty && index < 5) {
+                          if (value.isNotEmpty && index < 3) {
                             controller.otpFocusNodes[index + 1].requestFocus();
                           } else if (value.isEmpty && index > 0) {
                             controller.otpFocusNodes[index - 1].requestFocus();
                           }
-                          if (value.length == 1 && index == 5) {
+                          if (value.length == 1 && index == 3) {
                             FocusScope.of(context).unfocus();
                           }
                         },

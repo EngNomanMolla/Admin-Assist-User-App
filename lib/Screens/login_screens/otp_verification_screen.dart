@@ -37,10 +37,10 @@ class OTPVerificationScreen extends StatelessWidget {
                 const SizedBox(height: 50),
 
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: List.generate(6, (index) {
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: List.generate(4, (index) {
                     return SizedBox(
-                      width: 48,
+                      width: 60,
                       child: TextField(
                         controller: controller.otpControllers[index],
                         focusNode: controller.otpFocusNodes[index],
@@ -48,7 +48,7 @@ class OTPVerificationScreen extends StatelessWidget {
                         keyboardType: TextInputType.number,
                         maxLength: 1,
                         style: const TextStyle(
-                          fontSize: 22,
+                          fontSize: 26,
                           fontWeight: FontWeight.bold,
                         ),
                         decoration: InputDecoration(
@@ -67,13 +67,13 @@ class OTPVerificationScreen extends StatelessWidget {
                         ),
 
                         onChanged: (value) {
-                          if (value.isNotEmpty && index < 5) {
+                          if (value.isNotEmpty && index < 3) {
                             controller.otpFocusNodes[index + 1].requestFocus();
                           } else if (value.isEmpty && index > 0) {
                             controller.otpFocusNodes[index - 1].requestFocus();
                           }
 
-                          if (value.length == 1 && index == 5) {
+                          if (value.length == 1 && index == 3) {
                             FocusScope.of(context).unfocus();
                           }
                         },

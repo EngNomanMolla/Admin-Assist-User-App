@@ -11,7 +11,7 @@ class LoginScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(AuthController());
+    final controller = Get.find<AuthController>();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
@@ -276,7 +276,7 @@ class LoginScreen extends StatelessWidget {
         // Blur Layer
         Positioned.fill(
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
             child: Container(color: Colors.transparent),
           ),
         ),
