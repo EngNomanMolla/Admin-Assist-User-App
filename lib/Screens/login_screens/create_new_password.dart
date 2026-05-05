@@ -47,24 +47,38 @@ class ResetPasswordScreen extends StatelessWidget {
 
               const SizedBox(height: 40),
 
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: () => controller.resetPassword(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF7B39FD),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+              Obx(
+                () => SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: controller.isLoading.value ? null : () => controller.resetPassword(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF7B39FD),
+                      disabledBackgroundColor: const Color(0xFF7B39FD).withOpacity(0.6),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
-                  ),
-                  child: const Text(
-                    "Reset Password",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    child: controller.isLoading.value
+                        ? const Center(
+                            child: SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2.5,
+                              ),
+                            ),
+                          )
+                        : const Text(
+                            "Reset Password",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
                 ),
               ),

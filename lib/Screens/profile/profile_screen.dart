@@ -13,7 +13,9 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ProfileController controller = Get.put(ProfileController());
-    Get.put(AuthController()); // Ensure AuthController is available for logout/delete
+    if (!Get.isRegistered<AuthController>()) {
+      Get.put(AuthController());
+    }
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
       body: Obx(() {
@@ -411,32 +413,38 @@ class ProfileScreen extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-                    child: TextButton(
-                      onPressed: () => Get.back(),
+                    child: Obx(() => TextButton(
+                      onPressed: authController.isLoading.value ? null : () => Get.back(),
                       child: const Text(
                         "Cancel",
                         style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w700),
                       ),
-                    ),
+                    )),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Get.back();
+                    child: Obx(() => ElevatedButton(
+                      onPressed: authController.isLoading.value ? null : () {
                         authController.logout();
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFF59E0B),
+                        disabledBackgroundColor: const Color(0xFFF59E0B).withOpacity(0.6),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         elevation: 0,
                       ),
-                      child: const Text(
-                        "Logout",
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-                      ),
-                    ),
+                      child: authController.isLoading.value
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            )
+                          : const Text(
+                              "Logout",
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                            ),
+                    )),
                   ),
                 ],
               ),
@@ -486,9 +494,10 @@ class ProfileScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              TextField(
+              Obx(() => TextField(
                 controller: authController.deletePasswordController,
                 obscureText: true,
+                enabled: !authController.isLoading.value,
                 decoration: InputDecoration(
                   hintText: "Enter Password",
                   hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
@@ -500,13 +509,13 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 ),
-              ),
+              )),
               const SizedBox(height: 24),
               Row(
                 children: [
                   Expanded(
-                    child: TextButton(
-                      onPressed: () {
+                    child: Obx(() => TextButton(
+                      onPressed: authController.isLoading.value ? null : () {
                         authController.deletePasswordController.clear();
                         Get.back();
                       },
@@ -514,23 +523,30 @@ class ProfileScreen extends StatelessWidget {
                         "Cancel",
                         style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w700),
                       ),
-                    ),
+                    )),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => authController.deleteAccount(),
+                    child: Obx(() => ElevatedButton(
+                      onPressed: authController.isLoading.value ? null : () => authController.deleteAccount(),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFEF4444),
+                        disabledBackgroundColor: const Color(0xFFEF4444).withOpacity(0.6),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         elevation: 0,
                       ),
-                      child: const Text(
-                        "Delete",
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-                      ),
-                    ),
+                      child: authController.isLoading.value
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            )
+                          : const Text(
+                              "Delete",
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                            ),
+                    )),
                   ),
                 ],
               ),

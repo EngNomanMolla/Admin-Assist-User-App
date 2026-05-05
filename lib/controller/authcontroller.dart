@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_widgets/provider/auth_provider.dart';
 import 'package:flutter_widgets/screens/login_screens/email_verification_screen.dart';
 import 'package:flutter_widgets/screens/navigation button.dart';
+import 'package:flutter_widgets/screens/login_screens/login_screen.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 
@@ -370,6 +371,8 @@ class AuthController extends GetxController {
   }
 
   void resetPassword() async {
+    if (isLoading.value) return;
+
     String email = forgotEmailPhoneController.text.trim();
     String pass1 = newPasswordController.text.trim();
     String pass2 = rewritePasswordController.text.trim();
@@ -379,6 +382,8 @@ class AuthController extends GetxController {
         "Error",
         "Please fill all fields",
         snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withOpacity(0.1),
+        colorText: Colors.red,
       );
       return;
     }
@@ -388,16 +393,14 @@ class AuthController extends GetxController {
         "Error",
         "Passwords do not match!",
         snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withOpacity(0.1),
+        colorText: Colors.red,
       );
       return;
     }
 
     try {
       isLoading.value = true;
-      Get.dialog(
-        const Center(child: CircularProgressIndicator(color: Color(0xFF7B39FD))),
-        barrierDismissible: false,
-      );
 
       final response = await _authProvider.resetPassword({
         'email': email,
@@ -406,44 +409,58 @@ class AuthController extends GetxController {
         'password_confirmation': pass2,
       });
       
-      Get.back(); // Close loading dialog
       isLoading.value = false;
 
       if (response.statusCode == 200) {
         newPasswordController.clear();
         rewritePasswordController.clear();
         forgotEmailPhoneController.clear();
-        resetOTP = ""; // Clear stored OTP
+        resetOTP = ""; 
         
-        Get.offAllNamed('/login');
-        Get.snackbar("Success", "Password reset successfully. Please login with your new password.", 
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.green.withOpacity(0.1),
-          colorText: Colors.green);
+        // Slight delay to ensure the UI has time to process the loading state change
+        // and avoid potential navigation conflicts during stack reset.
+        Future.delayed(const Duration(milliseconds: 100), () {
+          Get.offAllNamed('/login');
+          Get.snackbar(
+            "Success", 
+            "Password reset successfully. Please login with your new password.", 
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.green.withOpacity(0.1),
+            colorText: Colors.green,
+            duration: const Duration(seconds: 4),
+          );
+        });
       } else {
         final error = jsonDecode(response.body);
-        Get.snackbar("Error", error['message'] ?? "Failed to reset password", 
-          snackPosition: SnackPosition.BOTTOM);
+        Get.snackbar(
+          "Error", 
+          error['message'] ?? "Failed to reset password", 
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.withOpacity(0.1),
+          colorText: Colors.red,
+        );
       }
     } catch (e) {
-      if (Get.isDialogOpen!) Get.back();
       isLoading.value = false;
       print("Reset Password Error: $e");
-      Get.snackbar("Error", "Something went wrong", snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        "Error", 
+        "Something went wrong", 
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withOpacity(0.1),
+        colorText: Colors.red,
+      );
     }
   }
 
   Future<void> logout() async {
+    if (isLoading.value) return;
+    
     try {
       isLoading.value = true;
-      Get.dialog(
-        const Center(child: CircularProgressIndicator(color: Color(0xFF7B39FD))),
-        barrierDismissible: false,
-      );
 
-      final response = await _authProvider.logout();
+      await _authProvider.logout();
       
-      Get.back(); // Close loading dialog
       isLoading.value = false;
 
       // Even if API fails, we clear local session for safety
@@ -451,10 +468,15 @@ class AuthController extends GetxController {
       _storage.remove('token');
       _storage.remove('userData');
       
-      Get.offAllNamed('/login');
-      Get.snackbar("Success", "Logged out successfully", snackPosition: SnackPosition.BOTTOM);
-    } catch (e) {
+      // Close any open dialog first
+      Get.focusScope?.unfocus();
       if (Get.isDialogOpen!) Get.back();
+
+      // Slight delay for smooth transition
+      Future.delayed(const Duration(milliseconds: 500), () {
+        Get.offAll(() => const LoginScreen(), transition: Transition.fade);
+      });
+    } catch (e) {
       isLoading.value = false;
       print("Logout Error: $e");
       
@@ -462,52 +484,77 @@ class AuthController extends GetxController {
       _storage.write('isLoggedIn', false);
       _storage.remove('token');
       _storage.remove('userData');
-      Get.offAllNamed('/login');
+      
+      Get.focusScope?.unfocus();
+      if (Get.isDialogOpen!) Get.back();
+
+      Future.delayed(const Duration(milliseconds: 500), () {
+        Get.offAll(() => const LoginScreen(), transition: Transition.fade);
+      });
     }
   }
 
   Future<void> deleteAccount() async {
+    if (isLoading.value) return;
+
     String password = deletePasswordController.text.trim();
     if (password.isEmpty) {
-      Get.snackbar("Error", "Please enter your password", snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        "Error", 
+        "Please enter your password", 
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withOpacity(0.1),
+        colorText: Colors.red,
+      );
       return;
     }
 
     try {
       isLoading.value = true;
-      Get.dialog(
-        const Center(child: CircularProgressIndicator(color: Color(0xFF7B39FD))),
-        barrierDismissible: false,
-      );
 
       final response = await _authProvider.deleteAccount(password);
       
-      Get.back(); // Close loading dialog
       isLoading.value = false;
 
       if (response.statusCode == 200 || response.statusCode == 204) {
+        // 1. Clear local storage data immediately
         _storage.write('isLoggedIn', false);
         _storage.remove('token');
         _storage.remove('userData');
         deletePasswordController.clear();
         
-        Get.offAllNamed('/login');
-        Get.snackbar("Success", "Account deleted successfully", 
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.green.withOpacity(0.1),
-          colorText: Colors.green);
+        // 2. Clear focus and close the dialog
+        Get.focusScope?.unfocus();
+        if (Get.isDialogOpen!) {
+          Get.back();
+        }
+        
+        // 3. Use a slightly longer delay and standard Get.offAll to ensure 
+        // the transition doesn't conflict with closing dialogs/keyboard.
+        // We also removed the success toast as requested.
+        Future.delayed(const Duration(milliseconds: 500), () {
+          Get.offAll(() => const LoginScreen(), transition: Transition.fade);
+        });
       } else {
         final error = jsonDecode(response.body);
-        Get.snackbar("Error", error['message'] ?? "Failed to delete account", 
+        Get.snackbar(
+          "Error", 
+          error['message'] ?? "Failed to delete account", 
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.red.withOpacity(0.1),
-          colorText: Colors.red);
+          colorText: Colors.red,
+        );
       }
     } catch (e) {
-      if (Get.isDialogOpen!) Get.back();
       isLoading.value = false;
       print("Delete Error: $e");
-      Get.snackbar("Error", "Something went wrong", snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        "Error", 
+        "Something went wrong", 
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withOpacity(0.1),
+        colorText: Colors.red,
+      );
     }
   }
 
