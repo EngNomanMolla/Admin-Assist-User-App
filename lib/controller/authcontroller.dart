@@ -26,6 +26,7 @@ class AuthController extends GetxController {
   final newPasswordController = TextEditingController();
   final rewritePasswordController = TextEditingController();
   final deletePasswordController = TextEditingController();
+  String resetOTP = "";
 
   var isPasswordVisible = false.obs;
   var isRememberMeChecked = false.obs;
@@ -170,13 +171,13 @@ class AuthController extends GetxController {
     }
   }
 
-  void sendResetLink() {
-    String input = forgotEmailPhoneController.text.trim();
+  void sendForgotPasswordOTP() async {
+    String email = forgotEmailPhoneController.text.trim();
 
-    if (input.isEmpty) {
+    if (email.isEmpty) {
       Get.snackbar(
         "Error",
-        "Please enter your email or phone number",
+        "Please enter your email first",
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red.withOpacity(0.1),
         colorText: Colors.red,
@@ -184,8 +185,88 @@ class AuthController extends GetxController {
       return;
     }
 
-    print("Sending reset code to: $input");
-    Get.toNamed('/otp-verification');
+    try {
+      isLoading.value = true;
+      Get.dialog(
+        const Center(child: CircularProgressIndicator(color: Color(0xFF7B39FD))),
+        barrierDismissible: false,
+      );
+
+      final response = await _authProvider.forgotPassword(email);
+      
+      Get.back(); // Close loading dialog
+      isLoading.value = false;
+
+      if (response.statusCode == 200) {
+        Get.toNamed('/otp-verification');
+        Get.snackbar("Success", "OTP sent to your email", 
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.withOpacity(0.1),
+          colorText: Colors.green);
+      } else {
+        final error = jsonDecode(response.body);
+        Get.snackbar("Error", error['message'] ?? "Failed to send OTP", 
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.withOpacity(0.1),
+          colorText: Colors.red);
+      }
+    } catch (e) {
+      if (Get.isDialogOpen!) Get.back();
+      isLoading.value = false;
+      print("Forgot Password Error: $e");
+      Get.snackbar("Error", "Something went wrong", snackPosition: SnackPosition.BOTTOM);
+    }
+  }
+
+  void verifyForgotPasswordOTP() async {
+    String otp = otpControllers.map((e) => e.text).join();
+    String email = forgotEmailPhoneController.text.trim();
+
+    if (otp.length < 4) {
+      Get.snackbar(
+        "Error",
+        "Please enter all 4 digits",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.withOpacity(0.1),
+        colorText: Colors.red,
+      );
+      return;
+    }
+
+    try {
+      isLoading.value = true;
+      Get.dialog(
+        const Center(child: CircularProgressIndicator(color: Color(0xFF7B39FD))),
+        barrierDismissible: false,
+      );
+
+      final response = await _authProvider.verifyForgotPasswordOTP(email, otp);
+      
+      Get.back(); // Close loading dialog
+      isLoading.value = false;
+
+      if (response.statusCode == 200) {
+        resetOTP = otp; // Store OTP for the final reset step
+        for (var c in otpControllers) {
+          c.clear();
+        }
+        Get.toNamed('/reset-password');
+      } else {
+        final error = jsonDecode(response.body);
+        Get.snackbar(
+          "Verification Failed",
+          error['message'] ?? "Invalid OTP code",
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.withOpacity(0.1),
+          colorText: Colors.red,
+        );
+      }
+    } catch (e) {
+      if (Get.isDialogOpen!) Get.back();
+      isLoading.value = false;
+      Get.snackbar("Error", "Something went wrong. Please try again.", snackPosition: SnackPosition.BOTTOM);
+      print("Verification Error: $e");
+    }
   }
 
   void verifyOTP() async {
@@ -239,10 +320,13 @@ class AuthController extends GetxController {
     }
   }
 
-  void resendCode() async {
-    String email = emailController.text.trim();
+  void resendCode({bool isForgotPassword = false}) async {
+    String email = isForgotPassword 
+        ? forgotEmailPhoneController.text.trim() 
+        : emailController.text.trim();
+
     if (email.isEmpty) {
-      Get.snackbar("Error", "Email not found. Please try logging in again.", 
+      Get.snackbar("Error", "Email not found. Please try again.", 
         snackPosition: SnackPosition.BOTTOM);
       return;
     }
@@ -254,7 +338,9 @@ class AuthController extends GetxController {
         barrierDismissible: false,
       );
 
-      final response = await _authProvider.resendOTP(email);
+      final response = isForgotPassword 
+          ? await _authProvider.forgotPassword(email)
+          : await _authProvider.resendOTP(email);
       
       Get.back(); // Close loading dialog
       isLoading.value = false;
@@ -283,7 +369,8 @@ class AuthController extends GetxController {
     print("Google Auth Tapped");
   }
 
-  void resetPassword() {
+  void resetPassword() async {
+    String email = forgotEmailPhoneController.text.trim();
     String pass1 = newPasswordController.text.trim();
     String pass2 = rewritePasswordController.text.trim();
 
@@ -305,8 +392,45 @@ class AuthController extends GetxController {
       return;
     }
 
-    print("Password reset successful");
-    Get.offAllNamed('/login');
+    try {
+      isLoading.value = true;
+      Get.dialog(
+        const Center(child: CircularProgressIndicator(color: Color(0xFF7B39FD))),
+        barrierDismissible: false,
+      );
+
+      final response = await _authProvider.resetPassword({
+        'email': email,
+        'otp': resetOTP,
+        'password': pass1,
+        'password_confirmation': pass2,
+      });
+      
+      Get.back(); // Close loading dialog
+      isLoading.value = false;
+
+      if (response.statusCode == 200) {
+        newPasswordController.clear();
+        rewritePasswordController.clear();
+        forgotEmailPhoneController.clear();
+        resetOTP = ""; // Clear stored OTP
+        
+        Get.offAllNamed('/login');
+        Get.snackbar("Success", "Password reset successfully. Please login with your new password.", 
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.withOpacity(0.1),
+          colorText: Colors.green);
+      } else {
+        final error = jsonDecode(response.body);
+        Get.snackbar("Error", error['message'] ?? "Failed to reset password", 
+          snackPosition: SnackPosition.BOTTOM);
+      }
+    } catch (e) {
+      if (Get.isDialogOpen!) Get.back();
+      isLoading.value = false;
+      print("Reset Password Error: $e");
+      Get.snackbar("Error", "Something went wrong", snackPosition: SnackPosition.BOTTOM);
+    }
   }
 
   Future<void> logout() async {

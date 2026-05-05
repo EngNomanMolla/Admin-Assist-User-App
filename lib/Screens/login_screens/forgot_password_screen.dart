@@ -36,9 +36,9 @@ class ForgotPasswordScreen extends StatelessWidget {
               const SizedBox(height: 12),
 
               const Text(
-                "Enter Your Email Or Phone Number To\nReset Your Password Quickly.",
+                "Enter your account email to reset\nyour password quickly.",
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: Colors.grey, height: 1.5),
+                style: TextStyle(fontSize: 14, color: Color(0xFF6B7280), height: 1.5),
               ),
               const SizedBox(height: 40),
 
@@ -58,7 +58,7 @@ class ForgotPasswordScreen extends StatelessWidget {
                 child: TextField(
                   controller: controller.forgotEmailPhoneController,
                   decoration: InputDecoration(
-                    hintText: "Email or phone number",
+                  hintText: "Enter your account email",
                     hintStyle: TextStyle(color: Colors.grey[400]),
                     prefixIcon: const Icon(
                       Icons.person_outline,
@@ -75,17 +75,7 @@ class ForgotPasswordScreen extends StatelessWidget {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: () {
-                    if (controller.forgotEmailPhoneController.text.isNotEmpty) {
-                      Get.toNamed('/otp-verification');
-                    } else {
-                      Get.snackbar(
-                        "Error",
-                        "Please enter your email or phone",
-                        snackPosition: SnackPosition.BOTTOM,
-                      );
-                    }
-                  },
+                  onPressed: () => controller.sendForgotPasswordOTP(),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF7B39FD),
                     shape: RoundedRectangleBorder(

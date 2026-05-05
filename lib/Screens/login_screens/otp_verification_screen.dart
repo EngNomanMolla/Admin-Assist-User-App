@@ -30,9 +30,9 @@ class OTPVerificationScreen extends StatelessWidget {
                 const SizedBox(height: 12),
 
                 const Text(
-                  "Enter The OTP Sent To 018********98",
+                  "Enter the OTP sent to your email",
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey, fontSize: 14),
+                  style: TextStyle(color: Color(0xFF6B7280), fontSize: 14),
                 ),
                 const SizedBox(height: 50),
 
@@ -87,7 +87,7 @@ class OTPVerificationScreen extends StatelessWidget {
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: () => controller.verifyOTP(),
+                    onPressed: () => controller.verifyForgotPasswordOTP(),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF7B39FD),
                       shape: RoundedRectangleBorder(
@@ -115,7 +115,7 @@ class OTPVerificationScreen extends StatelessWidget {
                       style: TextStyle(color: Colors.grey, fontSize: 14),
                     ),
                     GestureDetector(
-                      onTap: () => controller.resendCode(),
+                      onTap: () => controller.resendCode(isForgotPassword: true),
                       child: const Text(
                         "Resend Code",
                         style: TextStyle(

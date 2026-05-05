@@ -59,7 +59,7 @@ class ResetPasswordScreen extends StatelessWidget {
                     ),
                   ),
                   child: const Text(
-                    "Login",
+                    "Reset Password",
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 16,

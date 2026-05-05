@@ -24,7 +24,19 @@ class AuthProvider extends ApiProvider {
       );
 
   // Forgot Password
-  Future<http.Response> forgotPassword(String email) => postRequest('/forgot-password', {'email': email});
+  Future<http.Response> forgotPassword(String email) => postRequest('/password/forgot', {'email': email});
+
+  // Verify Forgot Password OTP
+  Future<http.Response> verifyForgotPasswordOTP(String email, String otp) => postRequest(
+        '/password/verify-otp',
+        {
+          'email': email,
+          'otp': otp,
+        },
+      );
+
+  // Reset Password
+  Future<http.Response> resetPassword(Map<String, dynamic> data) => postRequest('/password/reset', data);
 
   // Logout request
   Future<http.Response> logout() => postRequest('/logout', {});
