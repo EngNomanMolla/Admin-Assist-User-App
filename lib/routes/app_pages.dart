@@ -47,6 +47,7 @@ class AppPages {
     GetPage(
       name: AppRoutes.NAVIGATION,
       page: () => const NavigationScreen(),
+      binding: AuthBinding(),
     ),
   ];
 }

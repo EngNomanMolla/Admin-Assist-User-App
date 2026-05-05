@@ -13,9 +13,7 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ProfileController controller = Get.put(ProfileController());
-    if (!Get.isRegistered<AuthController>()) {
-      Get.put(AuthController());
-    }
+    Get.find<AuthController>(); // Ensure AuthController is available for logout/delete
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
       body: Obx(() {

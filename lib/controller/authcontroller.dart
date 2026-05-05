@@ -80,7 +80,7 @@ class AuthController extends GetxController {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        String token = data['token'];
+        String token = data['access_token'] ?? data['token'] ?? '';
         
         // Always save token for the current session's API calls
         _storage.write('token', token);
@@ -298,11 +298,23 @@ class AuthController extends GetxController {
       isLoading.value = false;
 
       if (response.statusCode == 200) {
-        // Get.snackbar("Success", "Email verified successfully", snackPosition: SnackPosition.BOTTOM);
+        final data = jsonDecode(response.body);
+        final String token = data['access_token'] ?? data['token'] ?? '';
+        
+        if (token.isNotEmpty) {
+          _storage.write('token', token);
+          _storage.write('userData', data['user']);
+          _storage.write('isLoggedIn', true);
+        }
+
         for (var c in otpControllers) {
           c.clear();
         }
-        Get.offAll(() => const NavigationScreen());
+        
+        // Slight delay for smooth transition to navigation screen
+        Future.delayed(const Duration(milliseconds: 300), () {
+          Get.offAll(() => const NavigationScreen());
+        });
       } else {
         final error = jsonDecode(response.body);
         Get.snackbar(
@@ -468,13 +480,15 @@ class AuthController extends GetxController {
       _storage.remove('token');
       _storage.remove('userData');
       
-      // Close any open dialog first
+      // Close any open dialog or overlays first
       Get.focusScope?.unfocus();
-      if (Get.isDialogOpen!) Get.back();
+      while (Get.isDialogOpen! || Get.isOverlaysOpen) {
+        Get.back();
+      }
 
-      // Slight delay for smooth transition
-      Future.delayed(const Duration(milliseconds: 500), () {
-        Get.offAll(() => const LoginScreen(), transition: Transition.fade);
+      // Slightly longer delay for maximum stability
+      Future.delayed(const Duration(milliseconds: 600), () {
+        Get.offAllNamed('/login', predicate: (route) => false);
       });
     } catch (e) {
       isLoading.value = false;
@@ -486,10 +500,12 @@ class AuthController extends GetxController {
       _storage.remove('userData');
       
       Get.focusScope?.unfocus();
-      if (Get.isDialogOpen!) Get.back();
+      while (Get.isDialogOpen! || Get.isOverlaysOpen) {
+        Get.back();
+      }
 
-      Future.delayed(const Duration(milliseconds: 500), () {
-        Get.offAll(() => const LoginScreen(), transition: Transition.fade);
+      Future.delayed(const Duration(milliseconds: 600), () {
+        Get.offAllNamed('/login', predicate: (route) => false);
       });
     }
   }
@@ -517,23 +533,24 @@ class AuthController extends GetxController {
       isLoading.value = false;
 
       if (response.statusCode == 200 || response.statusCode == 204) {
-        // 1. Clear local storage data immediately
+        // 1. Clear session data
         _storage.write('isLoggedIn', false);
         _storage.remove('token');
         _storage.remove('userData');
         deletePasswordController.clear();
         
-        // 2. Clear focus and close the dialog
+        // 2. Comprehensive UI Cleanup
         Get.focusScope?.unfocus();
-        if (Get.isDialogOpen!) {
+        
+        // 3. Close ALL overlays (dialogs, snackbars, etc.)
+        while (Get.isDialogOpen! || Get.isOverlaysOpen) {
           Get.back();
         }
         
-        // 3. Use a slightly longer delay and standard Get.offAll to ensure 
-        // the transition doesn't conflict with closing dialogs/keyboard.
-        // We also removed the success toast as requested.
-        Future.delayed(const Duration(milliseconds: 500), () {
-          Get.offAll(() => const LoginScreen(), transition: Transition.fade);
+        // 4. Use root Navigator to force a clean reset to Login
+        // This bypasses any GetX internal transition locks.
+        Future.delayed(const Duration(milliseconds: 600), () {
+          Get.offAllNamed('/login', predicate: (route) => false);
         });
       } else {
         final error = jsonDecode(response.body);
