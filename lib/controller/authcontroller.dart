@@ -45,6 +45,9 @@ class AuthController extends GetxController {
     if (isRememberMeChecked.value) {
       emailController.text = _storage.read('savedEmail') ?? '';
       loginPasswordController.text = _storage.read('savedPassword') ?? '';
+    } else {
+      emailController.clear();
+      loginPasswordController.clear();
     }
   }
 
@@ -507,43 +510,42 @@ class AuthController extends GetxController {
     
     try {
       isLoading.value = true;
-
       await _authProvider.logout();
-      
-      isLoading.value = false;
-
-      // Even if API fails, we clear local session for safety
-      _storage.write('isLoggedIn', false);
-      _storage.remove('token');
-      _storage.remove('userData');
-      
-      // Close any open dialog or overlays first
-      Get.focusScope?.unfocus();
-      while (Get.isDialogOpen! || Get.isOverlaysOpen) {
-        Get.back();
-      }
-
-      // Slightly longer delay for maximum stability
-      Future.delayed(const Duration(milliseconds: 600), () {
-        Get.offAllNamed('/login', predicate: (route) => false);
-      });
     } catch (e) {
-      isLoading.value = false;
-      print("Logout Error: $e");
-      
-      // Still logout locally
+      print("Logout API Error: $e");
+    } finally {
+      // 1. Clear session and persistence data
       _storage.write('isLoggedIn', false);
+      _storage.write('rememberMe', false);
       _storage.remove('token');
       _storage.remove('userData');
+      _storage.remove('savedEmail');
+      _storage.remove('savedPassword');
       
+      // Update reactive variable
+      isRememberMeChecked.value = false;
+
+      // 2. Controllers will be fresh in the new instance; no need to clear here
+      // which avoids "used after disposed" errors.
+      
+      isLoading.value = false;
+
+      // 3. UI Cleanup
       Get.focusScope?.unfocus();
-      while (Get.isDialogOpen! || Get.isOverlaysOpen) {
+      if (Get.isSnackbarOpen) Get.closeAllSnackbars();
+      
+      // 4. Safe Navigation Reset
+      // Close the logout dialog first and wait for it to avoid transition freeze
+      if (Get.isDialogOpen ?? false) {
         Get.back();
+        await Future.delayed(const Duration(milliseconds: 300));
+      } else if (Get.isOverlaysOpen) {
+        Get.back();
+        await Future.delayed(const Duration(milliseconds: 300));
       }
 
-      Future.delayed(const Duration(milliseconds: 600), () {
-        Get.offAllNamed('/login', predicate: (route) => false);
-      });
+      // Final navigation to reset everything
+      Get.offAllNamed(AppRoutes.LOGIN);
     }
   }
 
@@ -574,21 +576,30 @@ class AuthController extends GetxController {
         _storage.write('isLoggedIn', false);
         _storage.remove('token');
         _storage.remove('userData');
-        deletePasswordController.clear();
         
-        // 2. Comprehensive UI Cleanup
+        // Clear login fields and 'Remember Me'
+        _storage.write('rememberMe', false);
+        _storage.remove('savedEmail');
+        _storage.remove('savedPassword');
+        isRememberMeChecked.value = false;
+        
+        // Controllers will be fresh in the new instance
+        deletePasswordController.clear(); // This one is still safe if we are still on the dialog
+        
+        // 2. UI Cleanup
         Get.focusScope?.unfocus();
         
-        // 3. Close ALL overlays (dialogs, snackbars, etc.)
-        while (Get.isDialogOpen! || Get.isOverlaysOpen) {
+        if (Get.isSnackbarOpen) Get.closeAllSnackbars();
+        if (Get.isDialogOpen ?? false) Get.back();
+        if (Get.isOverlaysOpen) Get.back();
+        
+        // 3. Stable Navigation Reset
+        if (Get.isDialogOpen ?? false) {
           Get.back();
+          await Future.delayed(const Duration(milliseconds: 300));
         }
         
-        // 4. Use root Navigator to force a clean reset to Login
-        // This bypasses any GetX internal transition locks.
-        Future.delayed(const Duration(milliseconds: 600), () {
-          Get.offAllNamed('/login', predicate: (route) => false);
-        });
+        Get.offAllNamed(AppRoutes.LOGIN);
       } else {
         final error = jsonDecode(response.body);
         Get.snackbar(
