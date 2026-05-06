@@ -13,7 +13,7 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ProfileController controller = Get.put(ProfileController());
-    Get.find<AuthController>(); // Ensure AuthController is available for logout/delete
+    final AuthController authController = Get.find<AuthController>();
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
       body: Obx(() {
@@ -215,6 +215,7 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildProfileDetails(BuildContext context, ProfileController controller) {
+    final AuthController authController = Get.find<AuthController>();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
@@ -251,11 +252,12 @@ class ProfileScreen extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _buildSmallActionButton(
+                child: Obx(() => _buildSmallActionButton(
                   label: "Logout",
                   color: const Color(0xFFF59E0B), 
-                  onTap: () => _showLogoutDialog(context),
-                ),
+                  isLoading: authController.isLoading.value,
+                  onTap: () => authController.logout(),
+                )),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -345,9 +347,10 @@ class ProfileScreen extends StatelessWidget {
     required String label,
     required VoidCallback onTap,
     required Color color,
+    bool isLoading = false,
   }) {
     return InkWell(
-      onTap: onTap,
+      onTap: isLoading ? null : onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
@@ -357,14 +360,23 @@ class ProfileScreen extends StatelessWidget {
           border: Border.all(color: color.withOpacity(0.15)),
         ),
         child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
+          child: isLoading
+              ? SizedBox(
+                  height: 18,
+                  width: 18,
+                  child: CircularProgressIndicator(
+                    color: color,
+                    strokeWidth: 2,
+                  ),
+                )
+              : Text(
+                  label,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
         ),
       ),
     );

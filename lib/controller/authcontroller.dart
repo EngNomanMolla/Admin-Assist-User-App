@@ -535,17 +535,20 @@ class AuthController extends GetxController {
       if (Get.isSnackbarOpen) Get.closeAllSnackbars();
       
       // 4. Safe Navigation Reset
-      // Close the logout dialog first and wait for it to avoid transition freeze
       if (Get.isDialogOpen ?? false) {
-        Get.back();
-        await Future.delayed(const Duration(milliseconds: 300));
-      } else if (Get.isOverlaysOpen) {
         Get.back();
         await Future.delayed(const Duration(milliseconds: 300));
       }
 
-      // Final navigation to reset everything
-      Get.offAllNamed(AppRoutes.LOGIN);
+      // 5. Immediate Navigation Reset using native Flutter Navigator
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        // Using native Navigator instead of GetX routing to avoid any GetX internal transition locks
+        // Note: We are NOT deleting the controller instance here as per user request
+        Navigator.of(Get.context!).pushNamedAndRemoveUntil(
+          AppRoutes.LOGIN,
+          (route) => false,
+        );
+      });
     }
   }
 
@@ -596,10 +599,14 @@ class AuthController extends GetxController {
         // 3. Stable Navigation Reset
         if (Get.isDialogOpen ?? false) {
           Get.back();
-          await Future.delayed(const Duration(milliseconds: 300));
         }
         
-        Get.offAllNamed(AppRoutes.LOGIN);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Navigator.of(Get.context!).pushNamedAndRemoveUntil(
+            AppRoutes.LOGIN,
+            (route) => false,
+          );
+        });
       } else {
         final error = jsonDecode(response.body);
         Get.snackbar(
@@ -625,24 +632,8 @@ class AuthController extends GetxController {
 
   @override
   void onClose() {
-    mobileController.dispose();
-    loginPasswordController.dispose();
-    nameController.dispose();
-    emailController.dispose();
-    signupPhoneController.dispose();
-    signupPasswordController.dispose();
-    forgotEmailPhoneController.dispose();
-    newPasswordController.dispose();
-    rewritePasswordController.dispose();
-    deletePasswordController.dispose();
-
-    for (var controller in otpControllers) {
-      controller.dispose();
-    }
-    for (var node in otpFocusNodes) {
-      node.dispose();
-    }
-
+    // Note: Disposing controllers is skipped as per user request to avoid "used after disposed" errors
+    // during complex navigation transitions.
     super.onClose();
   }
 }

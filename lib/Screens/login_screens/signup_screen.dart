@@ -53,6 +53,7 @@ class SignupScreen extends StatelessWidget {
                   _buildTextField(
                     controller: controller.emailController,
                     hint: "Enter your email address",
+                    keyboardType: TextInputType.number,
                   ),
                   const SizedBox(height: 12),
                   _buildLabel("Phone"),
@@ -263,10 +264,12 @@ class SignupScreen extends StatelessWidget {
     bool isPassword = false,
     bool obscureText = false,
     VoidCallback? onSuffixIconTap,
+    TextInputType keyboardType = TextInputType.text,
   }) {
     return TextField(
       controller: controller,
       obscureText: obscureText,
+      keyboardType: keyboardType,
       style: const TextStyle(fontSize: 15, color: Color(0xFF1F2937)),
       decoration: InputDecoration(
         hintText: hint,
