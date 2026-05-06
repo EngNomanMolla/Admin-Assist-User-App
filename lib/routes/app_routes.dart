@@ -6,4 +6,5 @@ abstract class AppRoutes {
   static const OTP_VERIFICATION = '/otp-verification';
   static const RESET_PASSWORD = '/reset-password';
   static const NAVIGATION = '/navigation';
+  static const EMAIL_VERIFICATION = '/email-verification';
 }

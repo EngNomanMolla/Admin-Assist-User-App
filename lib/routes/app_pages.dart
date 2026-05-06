@@ -4,6 +4,7 @@ import 'package:flutter_widgets/routes/app_routes.dart';
 import 'package:flutter_widgets/screens/login_screens/create_new_password.dart';
 import 'package:flutter_widgets/screens/login_screens/forgot_password_screen.dart';
 import 'package:flutter_widgets/screens/login_screens/login_screen.dart';
+import 'package:flutter_widgets/screens/login_screens/email_verification_screen.dart';
 import 'package:flutter_widgets/screens/login_screens/otp_verification_screen.dart';
 import 'package:flutter_widgets/screens/login_screens/signup_screen.dart';
 import 'package:flutter_widgets/screens/navigation button.dart';
@@ -13,6 +14,10 @@ class AppPages {
   static String get INITIAL {
     final storage = GetStorage();
     if (storage.read('isLoggedIn') == true) {
+      final userData = storage.read('userData');
+      if (userData != null && userData['email_verified_at'] == null) {
+        return AppRoutes.EMAIL_VERIFICATION;
+      }
       return AppRoutes.NAVIGATION;
     }
     return AppRoutes.LOGIN;
@@ -47,6 +52,11 @@ class AppPages {
     GetPage(
       name: AppRoutes.NAVIGATION,
       page: () => const NavigationScreen(),
+      binding: AuthBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.EMAIL_VERIFICATION,
+      page: () => const EmailVerificationScreen(),
       binding: AuthBinding(),
     ),
   ];

@@ -4,6 +4,7 @@ import 'package:flutter_widgets/provider/auth_provider.dart';
 import 'package:flutter_widgets/screens/login_screens/email_verification_screen.dart';
 import 'package:flutter_widgets/screens/navigation button.dart';
 import 'package:flutter_widgets/screens/login_screens/login_screen.dart';
+import 'package:flutter_widgets/routes/app_routes.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 
@@ -82,10 +83,16 @@ class AuthController extends GetxController {
         final data = jsonDecode(response.body);
         String token = data['access_token'] ?? data['token'] ?? '';
         
-        // Always save token for the current session's API calls
+        // Always save token and user data for the current session's API calls
         _storage.write('token', token);
         _storage.write('userData', data['user']);
         
+        // Check if user is verified (in case the API returns 200 for unverified)
+        if (data['user'] != null && data['user']['email_verified_at'] == null) {
+          _navigateToVerification("Please verify your email to continue. A code has been sent.");
+          return;
+        }
+
         // Save persistent session only if Remember Me is checked
         if (isRememberMeChecked.value) {
           _storage.write('isLoggedIn', true);
@@ -99,13 +106,24 @@ class AuthController extends GetxController {
           _storage.remove('savedPassword');
         }
         
-        // Get.snackbar("Success", "Logged in successfully", snackPosition: SnackPosition.BOTTOM);
-        Get.offAll(() => const NavigationScreen());
+        Get.offAllNamed(AppRoutes.NAVIGATION);
+      } else if (response.statusCode == 403) {
+        final data = jsonDecode(response.body);
+        String message = data['message'] ?? "Email verification required";
+        _navigateToVerification(message);
       } else {
         final error = jsonDecode(response.body);
+        String message = error['message'] ?? "Invalid credentials";
+        
+        // Secondary check for "verified" string in case of other status codes (like 401)
+        if (message.toLowerCase().contains('verified') || message.toLowerCase().contains('verification')) {
+          _navigateToVerification(message);
+          return;
+        }
+
         Get.snackbar(
           "Login Failed",
-          error['message'] ?? "Invalid credentials",
+          message,
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.red.withOpacity(0.1),
           colorText: Colors.red,
@@ -116,6 +134,21 @@ class AuthController extends GetxController {
       Get.snackbar("Error", "Something went wrong. Please try again.", snackPosition: SnackPosition.BOTTOM);
       print("Login Error: $e");
     }
+  }
+
+  // Helper method for clean navigation to verification
+  void _navigateToVerification(String message) {
+    Get.snackbar(
+      "Verification Required",
+      message,
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.orange.withOpacity(0.1),
+      colorText: Colors.orange,
+    );
+    Get.focusScope?.unfocus();
+    Future.delayed(const Duration(milliseconds: 500), () {
+      Get.toNamed(AppRoutes.EMAIL_VERIFICATION);
+    });
   }
 
   void signup() async {
@@ -154,7 +187,7 @@ class AuthController extends GetxController {
           backgroundColor: Colors.green.withOpacity(0.1),
           colorText: Colors.green,
         );
-        Get.to(() => const EmailVerificationScreen());
+        Get.toNamed(AppRoutes.EMAIL_VERIFICATION);
       } else {
         final error = jsonDecode(response.body);
         Get.snackbar(
@@ -313,7 +346,7 @@ class AuthController extends GetxController {
         
         // Slight delay for smooth transition to navigation screen
         Future.delayed(const Duration(milliseconds: 300), () {
-          Get.offAll(() => const NavigationScreen());
+          Get.offAllNamed(AppRoutes.NAVIGATION);
         });
       } else {
         final error = jsonDecode(response.body);
