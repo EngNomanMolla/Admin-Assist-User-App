@@ -53,7 +53,7 @@ class SignupScreen extends StatelessWidget {
                   _buildTextField(
                     controller: controller.emailController,
                     hint: "Enter your email address",
-                    keyboardType: TextInputType.number,
+                    keyboardType: TextInputType.emailAddress,
                   ),
                   const SizedBox(height: 12),
                   _buildLabel("Phone"),
@@ -61,6 +61,7 @@ class SignupScreen extends StatelessWidget {
                   _buildTextField(
                     controller: controller.signupPhoneController,
                     hint: "Enter your phone number",
+                    keyboardType: TextInputType.number,
                   ),
                   const SizedBox(height: 12),
                   _buildLabel("Password"),

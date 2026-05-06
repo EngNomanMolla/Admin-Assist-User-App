@@ -196,9 +196,39 @@ class AuthController extends GetxController {
         Get.toNamed(AppRoutes.EMAIL_VERIFICATION);
       } else {
         final error = jsonDecode(response.body);
+        String message = (error['message'] ?? "Something went wrong").toString();
+        
+        // 1. User already exists but not verified
+        if (message.toLowerCase().contains("not verified")) {
+          Get.snackbar(
+            "Account status",
+            "User already exists but not verified. Sent OTP to mail.",
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.orange.withOpacity(0.1),
+            colorText: Colors.orange,
+          );
+          // Navigate to verification screen as requested
+          Get.toNamed(AppRoutes.EMAIL_VERIFICATION);
+          return;
+        } 
+        
+        // 2. User already exists and is verified
+        if (message.toLowerCase().contains("already exist")) {
+          Get.snackbar(
+            "Registration Failed",
+            "User already exist with this mail",
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.red.withOpacity(0.1),
+            colorText: Colors.red,
+          );
+          // Do not navigate, just show the message
+          return;
+        }
+
+        // 3. Generic error
         Get.snackbar(
           "Registration Failed",
-          error['message'] ?? "Something went wrong",
+          message,
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.red.withOpacity(0.1),
           colorText: Colors.red,
