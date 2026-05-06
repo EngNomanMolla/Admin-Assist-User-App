@@ -170,6 +170,9 @@ class AuthController extends GetxController {
 
     try {
       isLoading.value = true;
+      // Default signup to persistent login unless specified otherwise
+      isRememberMeChecked.value = true;
+      
       final response = await _authProvider.signup({
         'name': name,
         'email': email,
@@ -337,7 +340,8 @@ class AuthController extends GetxController {
         if (token.isNotEmpty) {
           _storage.write('token', token);
           _storage.write('userData', data['user']);
-          _storage.write('isLoggedIn', true);
+          // Only stay logged in if Remember Me was checked (or if it's a signup which defaults to persistent)
+          _storage.write('isLoggedIn', isRememberMeChecked.value);
         }
 
         for (var c in otpControllers) {
