@@ -22,6 +22,7 @@ class ExpenseController extends GetxController {
       ExpenseTransaction(id: '1', title: 'Lunch', amount: 150.0, categoryId: '1', date: DateTime.now()),
       ExpenseTransaction(id: '2', title: 'Bus fare', amount: 30.0, categoryId: '2', date: DateTime.now().subtract(const Duration(days: 1))),
       ExpenseTransaction(id: '3', title: 'Internet Bill', amount: 500.0, categoryId: '3', date: DateTime.now().subtract(const Duration(days: 2))),
+      ExpenseTransaction(id: '4', title: 'Long Distance Travel', amount: 2500.0, categoryId: '2', date: DateTime.now()),
     ]);
   }
 

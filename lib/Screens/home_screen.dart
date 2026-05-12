@@ -9,6 +9,7 @@ import 'package:flutter_widgets/screens/finance_planner/finance_planner_screen.d
 import 'package:flutter_widgets/screens/targetbox_product/targetbox_product.dart';
 import 'package:flutter_widgets/screens/todo_list_screen/todo_list_screen.dart';
 import 'package:flutter_widgets/screens/calculator_screen/calculator_screen.dart';
+import 'package:flutter_widgets/screens/finance_planner/budget/budget_screen.dart';
 import 'package:get/get.dart';
 import 'package:marquee/marquee.dart';
 import 'package:shimmer/shimmer.dart';
@@ -203,8 +204,7 @@ class HomeScreen extends StatelessWidget {
             } else if (index == 1) {
               Get.to(() => const FinancePlannerScreen());
             } else if (index == 2) {
-              Get.snackbar('Coming Soon', 'Budget Planner feature is coming soon!',
-                  snackPosition: SnackPosition.BOTTOM);
+              Get.to(() => const BudgetScreen());
             } else if (index == 3) {
               Get.to(() => const TodoListScreen());
             } else if (index == 4) {

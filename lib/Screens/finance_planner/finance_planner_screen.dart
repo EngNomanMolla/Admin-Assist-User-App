@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import 'package:flutter_widgets/screens/finance_planner/income/income_screen.dart';
 import 'package:flutter_widgets/screens/finance_planner/expense/expense_screen.dart';
 import 'package:flutter_widgets/screens/finance_planner/debt/debt_screen.dart';
+import 'package:flutter_widgets/screens/finance_planner/wealth/wealth_screen.dart';
+import 'package:flutter_widgets/screens/finance_planner/budget/budget_screen.dart';
 
 class FinancePlannerScreen extends StatelessWidget {
   const FinancePlannerScreen({super.key});
@@ -22,9 +24,18 @@ class FinancePlannerScreen extends StatelessWidget {
         ),
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF111827), size: 20),
-          onPressed: () => Get.back(),
+        leading: Center(
+          child: GestureDetector(
+            onTap: () => Get.back(),
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: const BoxDecoration(
+                color: Color(0xFF10B981),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 14),
+            ),
+          ),
         ),
         centerTitle: true,
       ),
@@ -79,9 +90,10 @@ class FinancePlannerScreen extends StatelessWidget {
                       icon: Icons.account_balance_rounded,
                       color: const Color(0xFF7B39FD),
                       onTap: () {
-                        Get.snackbar('Wealth', 'Wealth feature coming soon!');
+                        Get.to(() => const WealthScreen());
                       },
                     ),
+
                   ],
                 ),
               ),
