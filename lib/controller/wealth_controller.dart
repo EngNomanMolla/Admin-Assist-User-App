@@ -19,7 +19,16 @@ class WealthController extends GetxController {
 
     // Add some dummy transactions
     transactions.addAll([
-      WealthTransaction(id: '1', title: 'Buy Apple Stock', amount: 12000.0, categoryId: '1', date: DateTime.now()),
+      WealthTransaction(
+        id: '1', 
+        title: 'Buy Apple Stock', 
+        amount: 12000.0, 
+        categoryId: '1', 
+        date: DateTime.now(),
+        updates: [
+          WealthUpdate(id: 'u1', amount: 500.0, date: DateTime.now().subtract(const Duration(days: 1))),
+        ],
+      ),
       WealthTransaction(id: '2', title: 'Buy Bitcoin', amount: 5000.0, categoryId: '2', date: DateTime.now().subtract(const Duration(days: 1))),
       WealthTransaction(id: '3', title: 'Monthly Savings', amount: 10000.0, categoryId: '4', date: DateTime.now().subtract(const Duration(days: 2))),
     ]);
@@ -41,6 +50,7 @@ class WealthController extends GetxController {
           amount: transactions[i].amount,
           categoryId: 'all',
           date: transactions[i].date,
+          updates: transactions[i].updates,
         );
       }
     }
@@ -72,7 +82,28 @@ class WealthController extends GetxController {
         title: title,
         amount: amount,
         categoryId: categoryId,
-        date: transactions[index].date, // Keep original date
+        date: transactions[index].date,
+        updates: transactions[index].updates, // Keep updates
+      );
+    }
+  }
+
+  void addGotAmount(String transactionId, double amount) {
+    final index = transactions.indexWhere((t) => t.id == transactionId);
+    if (index != -1) {
+      final transaction = transactions[index];
+      final updateId = DateTime.now().millisecondsSinceEpoch.toString();
+      final newUpdate = WealthUpdate(id: updateId, amount: amount, date: DateTime.now());
+      
+      final updatedUpdates = List<WealthUpdate>.from(transaction.updates)..add(newUpdate);
+      
+      transactions[index] = WealthTransaction(
+        id: transaction.id,
+        title: transaction.title,
+        amount: transaction.amount,
+        categoryId: transaction.categoryId,
+        date: transaction.date,
+        updates: updatedUpdates,
       );
     }
   }
@@ -89,7 +120,7 @@ class WealthController extends GetxController {
   }
 
   double get totalWealth {
-    return filteredTransactions.fold(0.0, (sum, item) => sum + item.amount);
+    return filteredTransactions.fold(0.0, (sum, item) => sum + item.totalAmount);
   }
 
   String getCategoryName(String categoryId) {

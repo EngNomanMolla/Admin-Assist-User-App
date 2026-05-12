@@ -5,12 +5,22 @@ import 'package:flutter_widgets/screens/finance_planner/expense/expense_screen.d
 import 'package:flutter_widgets/screens/finance_planner/debt/debt_screen.dart';
 import 'package:flutter_widgets/screens/finance_planner/wealth/wealth_screen.dart';
 import 'package:flutter_widgets/screens/finance_planner/budget/budget_screen.dart';
+import 'package:flutter_widgets/controller/income_controller.dart';
+import 'package:flutter_widgets/controller/expense_controller.dart';
+import 'package:flutter_widgets/controller/debt_controller.dart';
+import 'package:flutter_widgets/controller/wealth_controller.dart';
 
 class FinancePlannerScreen extends StatelessWidget {
   const FinancePlannerScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // Initialize controllers
+    final IncomeController incomeController = Get.put(IncomeController());
+    final ExpenseController expenseController = Get.put(ExpenseController());
+    final DebtController debtController = Get.put(DebtController());
+    final WealthController wealthController = Get.put(WealthController());
+
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
       appBar: AppBar(
@@ -40,22 +50,76 @@ class FinancePlannerScreen extends StatelessWidget {
         centerTitle: true,
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Manage your finances',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Color(0xFF6B7280),
-                  fontWeight: FontWeight.w400,
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Manage your finances',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Color(0xFF6B7280),
+                    fontWeight: FontWeight.w400,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              Expanded(
-                child: GridView.count(
+                const SizedBox(height: 16),
+
+                // Summary Section 1: Income, Expense, Balance
+                Obx(() {
+                  final totalIncome = incomeController.totalIncome;
+                  final totalExpense = expenseController.totalExpense;
+                  final balance = totalIncome - totalExpense;
+
+                  return Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE5E7EB)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildSummaryItem('Income', totalIncome, const Color(0xFF10B981)),
+                        const Text('-', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF6B7280))),
+                        _buildSummaryItem('Expense', totalExpense, const Color(0xFFEF4444)),
+                        const Text('=', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF6B7280))),
+                        _buildSummaryItem('Net Income', balance, const Color(0xFF3B82F6)),
+                      ],
+                    ),
+                  );
+                }),
+                const SizedBox(height: 12),
+
+                // Summary Section 2: Liability, Asset
+                Obx(() {
+                  final totalDebt = debtController.totalDebt;
+                  final totalWealth = wealthController.totalWealth;
+
+                  return Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE5E7EB)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildSummaryItem('Total Liability', totalDebt, const Color(0xFFF59E0B)),
+                        _buildSummaryItem('Total Asset', totalWealth, const Color(0xFF7B39FD)),
+                      ],
+                    ),
+                  );
+                }),
+                const SizedBox(height: 24),
+
+                // Grid of Cards
+                GridView.count(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
                   crossAxisCount: 2,
                   crossAxisSpacing: 16,
                   mainAxisSpacing: 16,
@@ -78,7 +142,7 @@ class FinancePlannerScreen extends StatelessWidget {
                       },
                     ),
                     _buildFinanceCard(
-                      title: 'Debt',
+                      title: 'Liability', // Renamed from Debt
                       icon: Icons.money_off_rounded,
                       color: const Color(0xFFF59E0B),
                       onTap: () {
@@ -86,21 +150,37 @@ class FinancePlannerScreen extends StatelessWidget {
                       },
                     ),
                     _buildFinanceCard(
-                      title: 'Wealth',
+                      title: 'Asset', // Renamed from Wealth
                       icon: Icons.account_balance_rounded,
                       color: const Color(0xFF7B39FD),
                       onTap: () {
                         Get.to(() => const WealthScreen());
                       },
                     ),
-
                   ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildSummaryItem(String label, double amount, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          '৳${amount.toStringAsFixed(0)}',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: color),
+        ),
+      ],
     );
   }
 
@@ -116,31 +196,31 @@ class FinancePlannerScreen extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.05),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
-          border: Border.all(color: color.withOpacity(0.1)),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: color.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, size: 24, color: color),
+              child: Icon(icon, color: color, size: 28),
             ),
             const SizedBox(height: 12),
             Text(
               title,
               style: const TextStyle(
-                fontSize: 14,
+                fontSize: 15,
                 fontWeight: FontWeight.w700,
                 color: Color(0xFF111827),
               ),

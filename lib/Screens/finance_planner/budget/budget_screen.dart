@@ -17,66 +17,89 @@ class BudgetScreen extends StatelessWidget {
       Get.put(ExpenseController());
     }
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
-      appBar: AppBar(
-        title: const Text(
-          'Budget Planner',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF111827),
-          ),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: Center(
-          child: GestureDetector(
-            onTap: () => Get.back(),
-            child: Container(
-              padding: const EdgeInsets.all(6),
-              decoration: const BoxDecoration(
-                color: Color(0xFFF97316), // Orange theme
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 14),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF9FAFB),
+        appBar: AppBar(
+          title: const Text(
+            'Budget Planner',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF111827),
             ),
           ),
-        ),
-        centerTitle: true,
-      ),
-      body: Obx(() {
-        final budgets = controller.budgets;
-        if (budgets.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.assignment_rounded, size: 48, color: Colors.grey[300]),
-                const SizedBox(height: 16),
-                const Text(
-                  'No budgets created',
-                  style: TextStyle(color: Color(0xFF6B7280), fontSize: 15),
+          backgroundColor: Colors.white,
+          elevation: 0,
+          leading: Center(
+            child: GestureDetector(
+              onTap: () => Get.back(),
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF97316), // Orange theme
+                  shape: BoxShape.circle,
                 ),
-              ],
+                child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 14),
+              ),
             ),
-          );
-        }
-        return ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          itemCount: budgets.length,
-          itemBuilder: (context, index) {
-            final budget = budgets[index];
-            return _buildBudgetCard(context, controller, budget);
-          },
-        );
-      }),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddBudgetDialog(context, controller),
-        backgroundColor: const Color(0xFFF97316), // Orange theme
-        child: const Icon(Icons.add, color: Colors.white),
+          ),
+          centerTitle: true,
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'Active'),
+              Tab(text: 'History'),
+            ],
+            labelColor: Color(0xFFF97316),
+            unselectedLabelColor: Color(0xFF6B7280),
+            indicatorColor: Color(0xFFF97316),
+            labelStyle: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+            unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            _buildBudgetList(controller, true),
+            _buildBudgetList(controller, false),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => _showAddBudgetDialog(context, controller),
+          backgroundColor: const Color(0xFFF97316), // Orange theme
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
       ),
     );
+  }
+
+  Widget _buildBudgetList(BudgetController controller, bool isActive) {
+    return Obx(() {
+      final budgets = isActive ? controller.activeBudgets : controller.completedBudgets;
+      if (budgets.isEmpty) {
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.assignment_rounded, size: 48, color: Colors.grey[300]),
+              const SizedBox(height: 16),
+              Text(
+                isActive ? 'No active budgets' : 'No completed budgets',
+                style: const TextStyle(color: Color(0xFF6B7280), fontSize: 15),
+              ),
+            ],
+          ),
+        );
+      }
+      return ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        itemCount: budgets.length,
+        itemBuilder: (context, index) {
+          final budget = budgets[index];
+          return _buildBudgetCard(context, controller, budget);
+        },
+      );
+    });
   }
 
   Widget _buildBudgetCard(BuildContext context, BudgetController controller, Budget budget) {

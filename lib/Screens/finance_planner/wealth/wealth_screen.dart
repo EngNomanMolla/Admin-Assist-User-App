@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:flutter_widgets/controller/wealth_controller.dart';
 import 'package:flutter_widgets/models/wealth_model.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_widgets/screens/finance_planner/wealth/asset_history_screen.dart';
 
 class WealthScreen extends StatelessWidget {
   const WealthScreen({super.key});
@@ -11,13 +12,30 @@ class WealthScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final WealthController controller = Get.put(WealthController());
 
+    Widget buildSummaryItem(String label, double amount, Color color) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280)),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '৳${amount.toStringAsFixed(0)}',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: color),
+          ),
+        ],
+      );
+    }
+
     return DefaultTabController(
       length: 2,
       child: Scaffold(
         backgroundColor: const Color(0xFFF9FAFB),
         appBar: AppBar(
           title: const Text(
-            'Wealth Tracker',
+            'Asset Tracker',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -44,6 +62,35 @@ class WealthScreen extends StatelessWidget {
         body: Column(
           children: [
             const SizedBox(height: 12),
+            // Summary Section
+            Obx(() {
+              final totalAsset = controller.totalWealth;
+              // Find transactions in 'Savings' category (ID '4')
+              final bankBalance = controller.transactions
+                  .where((t) => t.categoryId == '4')
+                  .fold(0.0, (sum, t) => sum + t.totalAmount);
+              final othersAssets = totalAsset - bankBalance;
+
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    buildSummaryItem('Bank Balance', bankBalance, const Color(0xFF10B981)),
+                    const Text('+', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF6B7280))),
+                    buildSummaryItem('Others Assets', othersAssets, const Color(0xFFF59E0B)),
+                    const Text('=', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF6B7280))),
+                    buildSummaryItem('Total Assets', totalAsset, const Color(0xFF7B39FD)),
+                  ],
+                ),
+              );
+            }),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: Container(
@@ -201,7 +248,7 @@ class WealthScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '$categoryName Wealth',
+                  '$categoryName Asset',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.9),
                     fontSize: 12,
@@ -250,14 +297,18 @@ class WealthScreen extends StatelessWidget {
         itemBuilder: (context, index) {
           final transaction = transactions[index];
           final categoryName = controller.getCategoryName(transaction.categoryId);
-          return Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.only(left: 12, top: 10, bottom: 10, right: 4),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE5E7EB)),
-            ),
+          return GestureDetector(
+            onTap: () {
+              Get.to(() => AssetHistoryScreen(transaction: transaction));
+            },
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.only(left: 12, top: 10, bottom: 10, right: 4),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
             child: Row(
               children: [
                 Container(
@@ -294,7 +345,7 @@ class WealthScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      '৳${transaction.amount.toStringAsFixed(2)}',
+                      '৳${transaction.totalAmount.toStringAsFixed(2)}',
                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF7B39FD)),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -314,9 +365,21 @@ class WealthScreen extends StatelessWidget {
                       _showUpdateTransactionDialog(context, controller, transaction);
                     } else if (val == 'delete') {
                       _showDeleteConfirmation(context, controller, transaction.id);
+                    } else if (val == 'got') {
+                      _showGotAmountDialog(context, controller, transaction);
                     }
                   },
                   itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'got',
+                      child: Row(
+                        children: [
+                          Icon(Icons.add_moderator_rounded, color: Color(0xFF10B981), size: 18),
+                          SizedBox(width: 8),
+                          Text('Got Amount'),
+                        ],
+                      ),
+                    ),
                     const PopupMenuItem(
                       value: 'edit',
                       child: Row(
@@ -341,7 +404,8 @@ class WealthScreen extends StatelessWidget {
                 ),
               ],
             ),
-          );
+          ),
+        );
         },
       );
     });
@@ -683,7 +747,7 @@ class WealthScreen extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                     const Text(
-                      'Add Wealth',
+                      'Add Asset',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
                     ),
                   ],
@@ -775,7 +839,7 @@ class WealthScreen extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                         elevation: 0,
                       ),
-                      child: const Text('Add Wealth', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                      child: const Text('Add Asset', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
                     ),
                   ],
                 ),
@@ -815,7 +879,7 @@ class WealthScreen extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                     const Text(
-                      'Update Wealth',
+                      'Update Asset',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
                     ),
                   ],
@@ -940,6 +1004,100 @@ class WealthScreen extends StatelessWidget {
             child: const Text('Delete', style: TextStyle(color: Colors.white)),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showGotAmountDialog(BuildContext context, WealthController controller, WealthTransaction transaction) {
+    final amountController = TextEditingController();
+    Get.dialog(
+      Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: Colors.white,
+        child: SingleChildScrollView(
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.add_moderator_rounded, color: Color(0xFF10B981), size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Got Amount',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Current Amount: ৳${transaction.amount.toStringAsFixed(2)}',
+                  style: const TextStyle(fontSize: 14, color: Color(0xFF4B5563)),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Amount to Add',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: amountController,
+                  decoration: InputDecoration(
+                    hintText: '0.00',
+                    hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+                    prefixText: '৳ ',
+                    prefixStyle: const TextStyle(color: Color(0xFF111827), fontWeight: FontWeight.w600),
+                    filled: true,
+                    fillColor: const Color(0xFFF3F4F6),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Get.back(),
+                      child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      onPressed: () {
+                        final addAmount = double.tryParse(amountController.text) ?? 0.0;
+                        if (addAmount > 0) {
+                          controller.addGotAmount(transaction.id, addAmount);
+                          Get.back();
+                          Get.snackbar("Success", "Amount added successfully", 
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: Colors.white,
+                            colorText: Colors.black);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF10B981),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        elevation: 0,
+                      ),
+                      child: const Text('Add', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

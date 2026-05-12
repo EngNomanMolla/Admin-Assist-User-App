@@ -3,6 +3,9 @@ import 'package:get/get.dart';
 import 'package:flutter_widgets/controller/debt_controller.dart';
 import 'package:flutter_widgets/models/debt_model.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_widgets/controller/income_controller.dart';
+import 'package:flutter_widgets/controller/expense_controller.dart';
+import 'package:flutter_widgets/screens/finance_planner/debt/debt_payment_history_screen.dart';
 
 class DebtScreen extends StatelessWidget {
   const DebtScreen({super.key});
@@ -10,6 +13,25 @@ class DebtScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final DebtController controller = Get.put(DebtController());
+    final IncomeController incomeController = Get.put(IncomeController());
+    final ExpenseController expenseController = Get.put(ExpenseController());
+
+    Widget buildSummaryItem(String label, double amount, Color color) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '৳${amount.toStringAsFixed(0)}',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: color),
+          ),
+        ],
+      );
+    }
 
     return DefaultTabController(
       length: 2,
@@ -17,7 +39,7 @@ class DebtScreen extends StatelessWidget {
         backgroundColor: const Color(0xFFF9FAFB),
         appBar: AppBar(
           title: const Text(
-            'Debt Tracker',
+            'Liability Tracker',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -43,6 +65,33 @@ class DebtScreen extends StatelessWidget {
         ),
         body: Column(
           children: [
+            const SizedBox(height: 12),
+            // Summary Section
+            Obx(() {
+              final totalDebt = controller.totalDebt;
+              final netIncome = incomeController.totalIncome - expenseController.totalExpense;
+              final totalCalculatedDebt = totalDebt + netIncome;
+
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    buildSummaryItem('Liability', totalDebt, const Color(0xFFF59E0B)),
+                    const Text('+', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF6B7280))),
+                    buildSummaryItem('Net Income', netIncome, netIncome >= 0 ? const Color(0xFF10B981) : const Color(0xFFEF4444)),
+                    const Text('=', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF6B7280))),
+                    buildSummaryItem('Total Liability', totalCalculatedDebt, const Color(0xFF111827)),
+                  ],
+                ),
+              );
+            }),
             const SizedBox(height: 12),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -201,7 +250,7 @@ class DebtScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '$categoryName Debt',
+                  '$categoryName Liability',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.9),
                     fontSize: 12,
@@ -250,14 +299,18 @@ class DebtScreen extends StatelessWidget {
         itemBuilder: (context, index) {
           final transaction = transactions[index];
           final categoryName = controller.getCategoryName(transaction.categoryId);
-          return Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.only(left: 12, top: 10, bottom: 10, right: 4),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE5E7EB)),
-            ),
+          return GestureDetector(
+            onTap: () {
+              Get.to(() => DebtPaymentHistoryScreen(transaction: transaction));
+            },
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.only(left: 12, top: 10, bottom: 10, right: 4),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
             child: Row(
               children: [
                 Container(
@@ -294,7 +347,7 @@ class DebtScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      '৳${transaction.amount.toStringAsFixed(2)}',
+                      '৳${transaction.remainingAmount.toStringAsFixed(2)}',
                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFFF59E0B)),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -314,9 +367,21 @@ class DebtScreen extends StatelessWidget {
                       _showUpdateTransactionDialog(context, controller, transaction);
                     } else if (val == 'delete') {
                       _showDeleteConfirmation(context, controller, transaction.id);
+                    } else if (val == 'pay') {
+                      _showPayDebtDialog(context, controller, transaction);
                     }
                   },
                   itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'pay',
+                      child: Row(
+                        children: [
+                          Icon(Icons.payment_rounded, color: Color(0xFF10B981), size: 18),
+                          SizedBox(width: 8),
+                          Text('Pay Liability'),
+                        ],
+                      ),
+                    ),
                     const PopupMenuItem(
                       value: 'edit',
                       child: Row(
@@ -341,7 +406,8 @@ class DebtScreen extends StatelessWidget {
                 ),
               ],
             ),
-          );
+          ),
+        );
         },
       );
     });
@@ -463,6 +529,105 @@ class DebtScreen extends StatelessWidget {
   }
 
   // MARK: - Dialogs
+
+  void _showPayDebtDialog(BuildContext context, DebtController controller, DebtTransaction transaction) {
+    final amountController = TextEditingController();
+    Get.dialog(
+      Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: Colors.white,
+        child: SingleChildScrollView(
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.payment_rounded, color: Color(0xFF10B981), size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Pay Liability',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Remaining Liability: ৳${transaction.remainingAmount.toStringAsFixed(2)}',
+                  style: const TextStyle(fontSize: 14, color: Color(0xFF4B5563)),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Amount to Pay',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: amountController,
+                  decoration: InputDecoration(
+                    hintText: '0.00',
+                    hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+                    prefixText: '৳ ',
+                    prefixStyle: const TextStyle(color: Color(0xFF111827), fontWeight: FontWeight.w600),
+                    filled: true,
+                    fillColor: const Color(0xFFF3F4F6),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Get.back(),
+                      child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      onPressed: () {
+                        final payAmount = double.tryParse(amountController.text) ?? 0.0;
+                        if (payAmount > 0) {
+                          if (payAmount > transaction.remainingAmount) {
+                            Get.snackbar("Notice", "Payment amount cannot exceed remaining debt", 
+                              snackPosition: SnackPosition.BOTTOM);
+                            return;
+                          }
+                          controller.payDebt(transaction.id, payAmount);
+                          Get.back();
+                          Get.snackbar("Success", "Liability paid successfully", 
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: Colors.white,
+                            colorText: Colors.black);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF10B981),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        elevation: 0,
+                      ),
+                      child: const Text('Pay', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   void _showAddCategoryDialog(BuildContext context, DebtController controller) {
     final textController = TextEditingController();
@@ -683,7 +848,7 @@ class DebtScreen extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                     const Text(
-                      'Add Debt',
+                      'Add Liability',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
                     ),
                   ],
@@ -775,7 +940,7 @@ class DebtScreen extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                         elevation: 0,
                       ),
-                      child: const Text('Add Debt', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                      child: const Text('Add Liability', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
                     ),
                   ],
                 ),
@@ -815,7 +980,7 @@ class DebtScreen extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                     const Text(
-                      'Update Debt',
+                      'Update Liability',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
                     ),
                   ],

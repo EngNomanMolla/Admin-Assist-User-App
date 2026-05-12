@@ -18,7 +18,16 @@ class DebtController extends GetxController {
 
     // Add some dummy transactions
     transactions.addAll([
-      DebtTransaction(id: '1', title: 'EMI', amount: 5000.0, categoryId: '3', date: DateTime.now()),
+      DebtTransaction(
+        id: '1', 
+        title: 'EMI', 
+        amount: 5000.0, 
+        categoryId: '3', 
+        date: DateTime.now(),
+        payments: [
+          DebtPayment(id: 'p1', amount: 1000.0, date: DateTime.now().subtract(const Duration(days: 2))),
+        ],
+      ),
       DebtTransaction(id: '2', title: 'Friend Loan', amount: 1000.0, categoryId: '2', date: DateTime.now().subtract(const Duration(days: 1))),
     ]);
   }
@@ -39,6 +48,7 @@ class DebtController extends GetxController {
           amount: transactions[i].amount,
           categoryId: 'all',
           date: transactions[i].date,
+          payments: transactions[i].payments,
         );
       }
     }
@@ -70,7 +80,28 @@ class DebtController extends GetxController {
         title: title,
         amount: amount,
         categoryId: categoryId,
-        date: transactions[index].date, // Keep original date
+        date: transactions[index].date,
+        payments: transactions[index].payments, // Keep payments
+      );
+    }
+  }
+
+  void payDebt(String transactionId, double amount) {
+    final index = transactions.indexWhere((t) => t.id == transactionId);
+    if (index != -1) {
+      final transaction = transactions[index];
+      final paymentId = DateTime.now().millisecondsSinceEpoch.toString();
+      final newPayment = DebtPayment(id: paymentId, amount: amount, date: DateTime.now());
+      
+      final updatedPayments = List<DebtPayment>.from(transaction.payments)..add(newPayment);
+      
+      transactions[index] = DebtTransaction(
+        id: transaction.id,
+        title: transaction.title,
+        amount: transaction.amount,
+        categoryId: transaction.categoryId,
+        date: transaction.date,
+        payments: updatedPayments,
       );
     }
   }
@@ -87,7 +118,7 @@ class DebtController extends GetxController {
   }
 
   double get totalDebt {
-    return filteredTransactions.fold(0.0, (sum, item) => sum + item.amount);
+    return filteredTransactions.fold(0.0, (sum, item) => sum + item.remainingAmount);
   }
 
   String getCategoryName(String categoryId) {

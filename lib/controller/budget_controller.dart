@@ -26,8 +26,19 @@ class BudgetController extends GetxController {
         endDate: DateTime.now().add(const Duration(days: 25)),
         categoryId: '2', // Transport category ID in ExpenseController
       ),
+      Budget(
+        id: '3',
+        title: 'Past Food Budget',
+        amount: 3000.0,
+        startDate: DateTime.now().subtract(const Duration(days: 40)),
+        endDate: DateTime.now().subtract(const Duration(days: 10)),
+        categoryId: '1',
+      ),
     ]);
   }
+
+  List<Budget> get activeBudgets => budgets.where((b) => b.endDate.isAfter(DateTime.now())).toList();
+  List<Budget> get completedBudgets => budgets.where((b) => b.endDate.isBefore(DateTime.now())).toList();
 
   void addBudget({
     required String title,
