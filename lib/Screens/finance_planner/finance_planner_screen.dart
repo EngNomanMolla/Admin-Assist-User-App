@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_widgets/screens/finance_planner/income/income_screen.dart';
+import 'package:flutter_widgets/screens/finance_planner/expense/expense_screen.dart';
+import 'package:flutter_widgets/screens/finance_planner/debt/debt_screen.dart';
 
 class FinancePlannerScreen extends StatelessWidget {
   const FinancePlannerScreen({super.key});
@@ -61,7 +63,7 @@ class FinancePlannerScreen extends StatelessWidget {
                       icon: Icons.trending_down_rounded,
                       color: const Color(0xFFEF4444),
                       onTap: () {
-                        Get.snackbar('Expense', 'Expense feature coming soon!');
+                        Get.to(() => const ExpenseScreen());
                       },
                     ),
                     _buildFinanceCard(
@@ -69,7 +71,7 @@ class FinancePlannerScreen extends StatelessWidget {
                       icon: Icons.money_off_rounded,
                       color: const Color(0xFFF59E0B),
                       onTap: () {
-                        Get.snackbar('Debt', 'Debt feature coming soon!');
+                        Get.to(() => const DebtScreen());
                       },
                     ),
                     _buildFinanceCard(
