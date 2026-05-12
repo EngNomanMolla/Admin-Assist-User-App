@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_widgets/screens/targetbox_product/product_details_screen.dart';
 
 class ProductScreen extends StatelessWidget {
   ProductScreen({super.key});
@@ -229,31 +230,7 @@ class ProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () async {
-        if (product.link.isEmpty) {
-          Get.snackbar("Notice", "No link available for this product", 
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.white,
-            colorText: Colors.black);
-          return;
-        }
-        final Uri url = Uri.parse(product.link.trim());
-        try {
-          if (await canLaunchUrl(url)) {
-            await launchUrl(url, mode: LaunchMode.externalApplication);
-          } else {
-            Get.snackbar("Error", "Could not launch product link", 
-              snackPosition: SnackPosition.BOTTOM,
-              backgroundColor: Colors.red.shade50,
-              colorText: Colors.red);
-          }
-        } catch (e) {
-          Get.snackbar("Error", "Invalid link format", 
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.red.shade50,
-            colorText: Colors.red);
-        }
-      },
+      onTap: () => Get.to(() => ProductDetailsScreen(product: product)),
       borderRadius: BorderRadius.circular(20),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
@@ -349,25 +326,7 @@ class ProductCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 InkWell(
-                  onTap: () async {
-                    if (product.link.isEmpty) {
-                      Get.snackbar("Notice", "No link available", 
-                        snackPosition: SnackPosition.BOTTOM);
-                      return;
-                    }
-                    final Uri url = Uri.parse(product.link.trim());
-                    try {
-                      if (await canLaunchUrl(url)) {
-                        await launchUrl(url, mode: LaunchMode.externalApplication);
-                      } else {
-                        Get.snackbar("Error", "Could not open link", 
-                          snackPosition: SnackPosition.BOTTOM);
-                      }
-                    } catch (e) {
-                      Get.snackbar("Error", "Invalid link", 
-                        snackPosition: SnackPosition.BOTTOM);
-                    }
-                  },
+                  onTap: () => Get.to(() => ProductDetailsScreen(product: product)),
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
