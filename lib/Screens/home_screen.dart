@@ -5,6 +5,7 @@ import 'package:flutter_widgets/controller/mentor_post_controller.dart';
 import 'package:flutter_widgets/screens/career_update/job_circular_screen.dart';
 import 'package:flutter_widgets/screens/mentor_assist_post/mentor_post_screen.dart';
 import 'package:flutter_widgets/screens/payment_reminder/payment_remainder_screen.dart';
+import 'package:flutter_widgets/screens/finance_planner/finance_planner_screen.dart';
 import 'package:flutter_widgets/screens/targetbox_product/targetbox_product.dart';
 import 'package:flutter_widgets/screens/todo_list_screen/todo_list_screen.dart';
 import 'package:flutter_widgets/screens/calculator_screen/calculator_screen.dart';
@@ -147,6 +148,16 @@ class HomeScreen extends StatelessWidget {
         'color': const Color(0xFF7B39FD),
       },
       {
+        'title': 'Finance\nPlanner',
+        'icon': Icons.account_balance_wallet_rounded,
+        'color': const Color(0xFF10B981),
+      },
+      {
+        'title': 'Budget\nPlanner',
+        'icon': Icons.pie_chart_rounded,
+        'color': const Color(0xFFF97316),
+      },
+      {
         'title': 'To Do List\nPlanner',
         'icon': Icons.checklist_rounded,
         'color': const Color(0xFF3B82F6),
@@ -190,14 +201,19 @@ class HomeScreen extends StatelessWidget {
             if (index == 0) {
               Get.to(() => PaymentRemainderScreen());
             } else if (index == 1) {
-              Get.to(() => const TodoListScreen());
+              Get.to(() => const FinancePlannerScreen());
             } else if (index == 2) {
-              Get.to(() => CalculatorScreen());
+              Get.snackbar('Coming Soon', 'Budget Planner feature is coming soon!',
+                  snackPosition: SnackPosition.BOTTOM);
             } else if (index == 3) {
-              Get.to(() => ProductScreen());
+              Get.to(() => const TodoListScreen());
             } else if (index == 4) {
-              Get.to(() => JobCircularScreen());
+              Get.to(() => CalculatorScreen());
             } else if (index == 5) {
+              Get.to(() => ProductScreen());
+            } else if (index == 6) {
+              Get.to(() => JobCircularScreen());
+            } else if (index == 7) {
               Get.to(() => const MentorPostScreen());
             }
           },
