@@ -1,0 +1,32 @@
+import 'package:flutter_widgets/provider/api_provider.dart';
+import 'package:http/http.dart' as http;
+
+class LiabilityProvider extends ApiProvider {
+  Future<http.Response> getLiabilityCategories() => getRequest('/liability_categories');
+
+  Future<http.Response> createLiabilityCategory(Map<String, dynamic> data) =>
+      postRequest('/liability_categories', data);
+
+  Future<http.Response> updateLiabilityCategory(String id, Map<String, dynamic> data) =>
+      postRequest('/liability_categories/$id', {...data, '_method': 'PUT'});
+
+  Future<http.Response> deleteLiabilityCategory(String id) =>
+      postRequest('/liability_categories/$id', {'_method': 'DELETE'});
+
+  Future<http.Response> getLiabilityTransactions() => getRequest('/liability_transactions');
+
+  Future<http.Response> createLiabilityTransaction(Map<String, dynamic> data) =>
+      postRequest('/liability_transactions', data);
+
+  Future<http.Response> updateLiabilityTransaction(String id, Map<String, dynamic> data) =>
+      postRequest('/liability_transactions/$id', {...data, '_method': 'PUT'});
+
+  Future<http.Response> deleteLiabilityTransaction(String id) =>
+      postRequest('/liability_transactions/$id', {'_method': 'DELETE'});
+
+  Future<http.Response> addLiabilityPayment(String transactionId, Map<String, dynamic> data) =>
+      postRequest('/liability_transactions/$transactionId/add-payment', data);
+
+  Future<http.Response> getLiabilityPaymentHistory(String transactionId) =>
+      getRequest('/liability_transactions/$transactionId/payment-history');
+}

@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_widgets/Models/payment_models.dart';
+import 'package:flutter_widgets/services/notification_service.dart';
 
 class PaymentController extends GetxController {
   final PaymentProvider _paymentProvider = PaymentProvider();
@@ -19,6 +20,7 @@ class PaymentController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    NotificationService().requestPermissions();
     fetchPayments();
   }
 
@@ -33,6 +35,32 @@ class PaymentController extends GetxController {
           paymentList.assignAll(data.map((e) => PaymentModel.fromMap(e)).toList());
         } else if (data['payment_reminders'] != null) {
           paymentList.assignAll((data['payment_reminders'] as List).map((e) => PaymentModel.fromMap(e)).toList());
+        }
+
+        // Schedule notifications for all fetched payments
+        for (var payment in paymentList) {
+          if (payment.id != null) {
+            double due = double.tryParse(payment.amount) ?? 0;
+            if (due == 0 || payment.status == "complete") {
+              // Cancel notification if it exists
+              await NotificationService().cancelNotification(payment.id!);
+              continue; // Skip scheduling
+            }
+            try {
+              DateTime dueDate = DateTime.parse(payment.time);
+              String repeatKey = payment.repeat.toLowerCase();
+              
+              await NotificationService().scheduleTaskNotification(
+                payment.id!,
+                "Payment Reminder: ${payment.name}",
+                payment.note.isNotEmpty ? payment.note : "You have a payment reminder.",
+                dueDate,
+                repeat: repeatKey,
+              );
+            } catch (e) {
+              print("Error scheduling notification for payment ${payment.id}: $e");
+            }
+          }
         }
       }
     } catch (e) {
@@ -72,11 +100,13 @@ class PaymentController extends GetxController {
 
   List<PaymentModel> get filteredList {
     if (selectedTab == 0) {
-      return paymentList.where((e) => e.status == "today").toList();
+      return paymentList.where((e) => e.status == "today" && (double.tryParse(e.amount) ?? 0) > 0).toList();
     } else if (selectedTab == 1) {
-      return paymentList.where((e) => e.status == "expire").toList();
+      return paymentList.where((e) => e.status == "expire" && (double.tryParse(e.amount) ?? 0) > 0).toList();
+    } else if (selectedTab == 2) {
+      return paymentList.where((e) => e.status == "nextup" && (double.tryParse(e.amount) ?? 0) > 0).toList();
     } else {
-      return paymentList.where((e) => e.status == "next").toList();
+      return paymentList.where((e) => e.status == "complete" || (double.tryParse(e.amount) ?? 0) == 0).toList();
     }
   }
 
@@ -134,8 +164,8 @@ class PaymentController extends GetxController {
       selectedReminderDate = null;
     }
     
-    String? matched = repeatOptions.firstWhereOrNull((e) => e.toLowerCase() == payment.repeat.toLowerCase());
-    if (matched != null) selectedRepeat.value = matched;
+    String? label = repeatKeyToLabel[payment.repeat.toLowerCase()];
+    if (label != null) selectedRepeat.value = label;
     
     update();
   }
@@ -150,7 +180,7 @@ class PaymentController extends GetxController {
     dateTimeController.clear();
     noteController.clear();
     selectedReminderDate = null;
-    selectedRepeat.value = "Monthly";
+    selectedRepeat.value = "Once";
     update();
   }
 
@@ -168,8 +198,33 @@ class PaymentController extends GetxController {
   final TextEditingController dateTimeController = TextEditingController();
   final TextEditingController noteController = TextEditingController();
   
-  var selectedRepeat = "Monthly".obs;
-  final List<String> repeatOptions = ["Weekly", "Monthly", "Half Yearly", "Yearly"];
+  var selectedRepeat = "Once".obs;
+  final List<String> repeatOptions = [
+    "Once",
+    "Daily",
+    "Weekly",
+    "Month",
+    "Half-Year",
+    "Year"
+  ];
+  
+  final Map<String, String> repeatKeyToLabel = {
+    "once": "Once",
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "monthly": "Month",
+    "half_yearly": "Half-Year",
+    "yearly": "Year",
+  };
+
+  final Map<String, String> repeatLabelToKey = {
+    "Once": "once",
+    "Daily": "daily",
+    "Weekly": "weekly",
+    "Month": "monthly",
+    "Half-Year": "half_yearly",
+    "Year": "yearly",
+  };
 
   double get paidAmount =>
       paymentHistory.fold(0, (sum, item) => sum + item.amount);
@@ -264,7 +319,7 @@ class PaymentController extends GetxController {
           "reminder_date": selectedReminderDate != null 
               ? DateFormat('yyyy-MM-dd HH:mm:ss').format(selectedReminderDate!)
               : DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
-          "repeat": selectedRepeat.value.toLowerCase(),
+          "repeat": repeatLabelToKey[selectedRepeat.value] ?? "monthly",
           "status": "nextup", 
           "notification_enabled": true,
           "notify_before_minutes": 30,
@@ -278,6 +333,31 @@ class PaymentController extends GetxController {
             : await _paymentProvider.createPayment(body);
 
         if (response.statusCode >= 200 && response.statusCode < 300) {
+          int paymentId = isEditing ? editingPaymentId! : 0;
+          
+          try {
+            final resData = jsonDecode(response.body);
+            if (resData['reminder'] != null && resData['reminder']['id'] != null) {
+              paymentId = int.tryParse(resData['reminder']['id'].toString()) ?? paymentId;
+            } else if (resData['id'] != null) {
+              paymentId = int.tryParse(resData['id'].toString()) ?? paymentId;
+            }
+          } catch (e) {
+            print("Error parsing payment ID: $e");
+          }
+
+          // Schedule Local Notification
+          if (paymentId != 0 && selectedReminderDate != null) {
+            String repeatKey = repeatLabelToKey[selectedRepeat.value] ?? "once";
+            await NotificationService().scheduleTaskNotification(
+              paymentId,
+              "Payment Reminder: ${nameController.text}",
+              noteController.text.isNotEmpty ? noteController.text : "You have a payment reminder.",
+              selectedReminderDate!,
+              repeat: repeatKey,
+            );
+          }
+
           Get.back();
           Get.snackbar(
             "Success", 
@@ -336,6 +416,18 @@ class PaymentController extends GetxController {
       final response = await _paymentProvider.updatePayment(payment.id!, body);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        // Update Local Notification
+        if (payment.id != null) {
+          String repeatKey = payment.repeat.toLowerCase();
+          await NotificationService().scheduleTaskNotification(
+            payment.id!,
+            "Payment Reminder: ${payment.name}",
+            payment.note.isNotEmpty ? payment.note : "You have a payment reminder.",
+            newDate,
+            repeat: repeatKey,
+          );
+        }
+
         Get.snackbar(
           "Success", 
           "Payment rescheduled successfully", 

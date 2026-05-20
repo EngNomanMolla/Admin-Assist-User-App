@@ -45,7 +45,7 @@ class MentorPostScreen extends StatelessWidget {
           ),
         ),
         title: const Text(
-          "Mentor Assist Post",
+          "Mentor Post",
           style: TextStyle(
             color: Colors.white,
             fontSize: 18,

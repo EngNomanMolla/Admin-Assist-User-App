@@ -149,7 +149,7 @@ class HomeScreen extends StatelessWidget {
         'color': const Color(0xFF7B39FD),
       },
       {
-        'title': 'Finance\nPlanner',
+        'title': 'Personal\nFinance Hub',
         'icon': Icons.account_balance_wallet_rounded,
         'color': const Color(0xFF10B981),
       },
@@ -169,7 +169,7 @@ class HomeScreen extends StatelessWidget {
         'color': const Color(0xFFF59E0B),
       },
       {
-        'title': 'Target Box\nProducts',
+        'title': 'Essential\nProducts',
         'icon': Icons.podcasts_rounded,
         'color': const Color(0xFFEC4899),
       },
@@ -179,7 +179,7 @@ class HomeScreen extends StatelessWidget {
         'color': const Color(0xFF10B981),
       },
       {
-        'title': 'Mentor Assist\nPost',
+        'title': 'Mentor\nPost',
         'icon': Icons.support_agent_rounded,
         'color': const Color(0xFF6366F1),
       },
@@ -243,7 +243,7 @@ class HomeScreen extends StatelessWidget {
                       ),
                       child: Icon(items[index]['icon'], size: 22, color: itemColor),
                     ),
-                    if (index == 5)
+                    if (index == 7)
                       Obx(() => mentorController.hasNewPosts.value
                           ? Positioned(
                               top: 2,

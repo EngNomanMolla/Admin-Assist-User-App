@@ -57,7 +57,7 @@ class ProductScreen extends StatelessWidget {
               );
             }
             return const Text(
-              "Target Box Products",
+              "Essential Products",
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 18,

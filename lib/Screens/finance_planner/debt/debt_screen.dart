@@ -571,8 +571,9 @@ class DebtScreen extends StatelessWidget {
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
                 ),
                 const SizedBox(height: 6),
-                TextField(
+                Obx(() => TextField(
                   controller: amountController,
+                  enabled: !controller.isLoading.value,
                   decoration: InputDecoration(
                     hintText: '0.00',
                     hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
@@ -584,18 +585,18 @@ class DebtScreen extends StatelessWidget {
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                ),
+                )),
                 const SizedBox(height: 24),
-                Row(
+                Obx(() => Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
-                      onPressed: () => Get.back(),
+                      onPressed: controller.isLoading.value ? null : () => Navigator.pop(context),
                       child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
                     ),
                     const SizedBox(width: 12),
                     ElevatedButton(
-                      onPressed: () {
+                      onPressed: controller.isLoading.value ? null : () async {
                         final payAmount = double.tryParse(amountController.text) ?? 0.0;
                         if (payAmount > 0) {
                           if (payAmount > transaction.remainingAmount) {
@@ -603,12 +604,10 @@ class DebtScreen extends StatelessWidget {
                               snackPosition: SnackPosition.BOTTOM);
                             return;
                           }
-                          controller.payDebt(transaction.id, payAmount);
-                          Get.back();
-                          Get.snackbar("Success", "Liability paid successfully", 
-                            snackPosition: SnackPosition.BOTTOM,
-                            backgroundColor: Colors.white,
-                            colorText: Colors.black);
+                          final success = await controller.payDebt(transaction.id, payAmount);
+                          if (success && context.mounted) {
+                            Navigator.pop(context);
+                          }
                         }
                       },
                       style: ElevatedButton.styleFrom(
@@ -617,10 +616,19 @@ class DebtScreen extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                         elevation: 0,
                       ),
-                      child: const Text('Pay', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                      child: controller.isLoading.value
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text('Pay', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
                     ),
                   ],
-                ),
+                )),
               ],
             ),
           ),
@@ -665,8 +673,9 @@ class DebtScreen extends StatelessWidget {
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
                 ),
                 const SizedBox(height: 6),
-                TextField(
+                Obx(() => TextField(
                   controller: textController,
+                  enabled: !controller.isLoading.value,
                   decoration: InputDecoration(
                     hintText: 'Category Name',
                     hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
@@ -675,21 +684,23 @@ class DebtScreen extends StatelessWidget {
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
-                ),
+                )),
                 const SizedBox(height: 24),
-                Row(
+                Obx(() => Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
-                      onPressed: () => Get.back(),
+                      onPressed: controller.isLoading.value ? null : () => Navigator.pop(context),
                       child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
                     ),
                     const SizedBox(width: 12),
                     ElevatedButton(
-                      onPressed: () {
+                      onPressed: controller.isLoading.value ? null : () async {
                         if (textController.text.isNotEmpty) {
-                          controller.addCategory(textController.text);
-                          Get.back();
+                          final success = await controller.addCategory(textController.text);
+                          if (success && context.mounted) {
+                            Navigator.pop(context);
+                          }
                         }
                       },
                       style: ElevatedButton.styleFrom(
@@ -698,10 +709,19 @@ class DebtScreen extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                         elevation: 0,
                       ),
-                      child: const Text('Add', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                      child: controller.isLoading.value
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text('Add', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
                     ),
                   ],
-                ),
+                )),
               ],
             ),
           ),
@@ -746,8 +766,9 @@ class DebtScreen extends StatelessWidget {
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
                 ),
                 const SizedBox(height: 6),
-                TextField(
+                Obx(() => TextField(
                   controller: textController,
+                  enabled: !controller.isLoading.value,
                   decoration: InputDecoration(
                     hintText: 'Category Name',
                     hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
@@ -756,21 +777,23 @@ class DebtScreen extends StatelessWidget {
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
-                ),
+                )),
                 const SizedBox(height: 24),
-                Row(
+                Obx(() => Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
-                      onPressed: () => Get.back(),
+                      onPressed: controller.isLoading.value ? null : () => Navigator.pop(context),
                       child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
                     ),
                     const SizedBox(width: 12),
                     ElevatedButton(
-                      onPressed: () {
+                      onPressed: controller.isLoading.value ? null : () async {
                         if (textController.text.isNotEmpty) {
-                          controller.updateCategory(id: category.id, name: textController.text);
-                          Get.back();
+                          final success = await controller.updateCategory(id: category.id, name: textController.text);
+                          if (success && context.mounted) {
+                            Navigator.pop(context);
+                          }
                         }
                       },
                       style: ElevatedButton.styleFrom(
@@ -779,10 +802,19 @@ class DebtScreen extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                         elevation: 0,
                       ),
-                      child: const Text('Update', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                      child: controller.isLoading.value
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text('Update', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
                     ),
                   ],
-                ),
+                )),
               ],
             ),
           ),
@@ -793,25 +825,36 @@ class DebtScreen extends StatelessWidget {
 
   void _showDeleteCategoryConfirmation(BuildContext context, DebtController controller, String categoryId) {
     Get.dialog(
-      AlertDialog(
+      Obx(() => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Delete Category'),
         content: const Text('Are you sure you want to delete this category? Transactions in this category will be reset to "All".'),
         actions: [
           TextButton(
-            onPressed: () => Get.back(),
+            onPressed: controller.isLoading.value ? null : () => Navigator.pop(context),
             child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280))),
           ),
           ElevatedButton(
-            onPressed: () {
-              controller.deleteCategory(categoryId);
-              Get.back();
+            onPressed: controller.isLoading.value ? null : () async {
+              final success = await controller.deleteCategory(categoryId);
+              if (success && context.mounted) {
+                Navigator.pop(context);
+              }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+            child: controller.isLoading.value
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : const Text('Delete', style: TextStyle(color: Colors.white)),
           ),
         ],
-      ),
+      )),
     );
   }
 
@@ -859,8 +902,9 @@ class DebtScreen extends StatelessWidget {
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
                 ),
                 const SizedBox(height: 6),
-                TextField(
+                Obx(() => TextField(
                   controller: titleController,
+                  enabled: !controller.isLoading.value,
                   decoration: InputDecoration(
                     hintText: 'e.g. Monthly Salary',
                     hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
@@ -869,15 +913,16 @@ class DebtScreen extends StatelessWidget {
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
-                ),
+                )),
                 const SizedBox(height: 16),
                 const Text(
                   'Amount',
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
                 ),
                 const SizedBox(height: 6),
-                TextField(
+                Obx(() => TextField(
                   controller: amountController,
+                  enabled: !controller.isLoading.value,
                   decoration: InputDecoration(
                     hintText: '0.00',
                     hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
@@ -889,7 +934,7 @@ class DebtScreen extends StatelessWidget {
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                ),
+                )),
                 const SizedBox(height: 16),
                 const Text(
                   'Category',
@@ -908,30 +953,32 @@ class DebtScreen extends StatelessWidget {
                     items: controller.categories.map((c) {
                       return DropdownMenuItem(value: c.id, child: Text(c.name));
                     }).toList(),
-                    onChanged: (val) {
+                    onChanged: controller.isLoading.value ? null : (val) {
                       selectedCategory = val ?? 'all';
                     },
                   );
                 }),
                 const SizedBox(height: 24),
-                Row(
+                Obx(() => Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
-                      onPressed: () => Get.back(),
+                      onPressed: controller.isLoading.value ? null : () => Navigator.pop(context),
                       child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
                     ),
                     const SizedBox(width: 12),
                     ElevatedButton(
-                      onPressed: () {
+                      onPressed: controller.isLoading.value ? null : () async {
                         final amount = double.tryParse(amountController.text);
                         if (titleController.text.isNotEmpty && amount != null) {
-                          controller.addTransaction(
+                          final success = await controller.addTransaction(
                             title: titleController.text,
                             amount: amount,
                             categoryId: selectedCategory,
                           );
-                          Get.back();
+                          if (success && context.mounted) {
+                            Navigator.pop(context);
+                          }
                         }
                       },
                       style: ElevatedButton.styleFrom(
@@ -940,10 +987,19 @@ class DebtScreen extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                         elevation: 0,
                       ),
-                      child: const Text('Add Liability', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                      child: controller.isLoading.value
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text('Add Liability', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
                     ),
                   ],
-                ),
+                )),
               ],
             ),
           ),
@@ -991,8 +1047,9 @@ class DebtScreen extends StatelessWidget {
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
                 ),
                 const SizedBox(height: 6),
-                TextField(
+                Obx(() => TextField(
                   controller: titleController,
+                  enabled: !controller.isLoading.value,
                   decoration: InputDecoration(
                     hintText: 'e.g. Monthly Salary',
                     hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
@@ -1001,15 +1058,16 @@ class DebtScreen extends StatelessWidget {
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
-                ),
+                )),
                 const SizedBox(height: 16),
                 const Text(
                   'Amount',
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
                 ),
                 const SizedBox(height: 6),
-                TextField(
+                Obx(() => TextField(
                   controller: amountController,
+                  enabled: !controller.isLoading.value,
                   decoration: InputDecoration(
                     hintText: '0.00',
                     hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
@@ -1021,7 +1079,7 @@ class DebtScreen extends StatelessWidget {
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                ),
+                )),
                 const SizedBox(height: 16),
                 const Text(
                   'Category',
@@ -1040,31 +1098,33 @@ class DebtScreen extends StatelessWidget {
                     items: controller.categories.map((c) {
                       return DropdownMenuItem(value: c.id, child: Text(c.name));
                     }).toList(),
-                    onChanged: (val) {
+                    onChanged: controller.isLoading.value ? null : (val) {
                       selectedCategory = val ?? 'all';
                     },
                   );
                 }),
                 const SizedBox(height: 24),
-                Row(
+                Obx(() => Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
-                      onPressed: () => Get.back(),
+                      onPressed: controller.isLoading.value ? null : () => Navigator.pop(context),
                       child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
                     ),
                     const SizedBox(width: 12),
                     ElevatedButton(
-                      onPressed: () {
+                      onPressed: controller.isLoading.value ? null : () async {
                         final amount = double.tryParse(amountController.text);
                         if (titleController.text.isNotEmpty && amount != null) {
-                          controller.updateTransaction(
+                          final success = await controller.updateTransaction(
                             id: transaction.id,
                             title: titleController.text,
                             amount: amount,
                             categoryId: selectedCategory,
                           );
-                          Get.back();
+                          if (success && context.mounted) {
+                            Navigator.pop(context);
+                          }
                         }
                       },
                       style: ElevatedButton.styleFrom(
@@ -1073,10 +1133,19 @@ class DebtScreen extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                         elevation: 0,
                       ),
-                      child: const Text('Update', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                      child: controller.isLoading.value
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text('Update', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
                     ),
                   ],
-                ),
+                )),
               ],
             ),
           ),
@@ -1087,25 +1156,36 @@ class DebtScreen extends StatelessWidget {
 
   void _showDeleteConfirmation(BuildContext context, DebtController controller, String transactionId) {
     Get.dialog(
-      AlertDialog(
+      Obx(() => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Delete Transaction'),
         content: const Text('Are you sure you want to delete this transaction?'),
         actions: [
           TextButton(
-            onPressed: () => Get.back(),
+            onPressed: controller.isLoading.value ? null : () => Navigator.pop(context),
             child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280))),
           ),
           ElevatedButton(
-            onPressed: () {
-              controller.deleteTransaction(transactionId);
-              Get.back();
+            onPressed: controller.isLoading.value ? null : () async {
+              final success = await controller.deleteTransaction(transactionId);
+              if (success && context.mounted) {
+                Navigator.pop(context);
+              }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+            child: controller.isLoading.value
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : const Text('Delete', style: TextStyle(color: Colors.white)),
           ),
         ],
-      ),
+      )),
     );
   }
 }

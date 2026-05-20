@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_widgets/screens/payment_reminder/payment_details_screen.dart';
 import 'package:flutter_widgets/screens/payment_reminder/create_reminder_screen.dart';
 import 'package:flutter_widgets/controller/payment_controller.dart';
@@ -78,6 +79,7 @@ class _PaymentRemainderScreenState extends State<PaymentRemainderScreen> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
                 child: Container(
+                  height: 52,
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -90,13 +92,17 @@ class _PaymentRemainderScreenState extends State<PaymentRemainderScreen> {
                       ),
                     ],
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _tabButton("Today", 0),
-                      _tabButton("Expire", 1),
-                      _tabButton("Next Up", 2),
-                    ],
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: 4,
+                    itemBuilder: (context, index) {
+                      final labels = ["Today", "Expire", "Next Up", "Complete"];
+                      return Builder(
+                        builder: (itemContext) {
+                          return _tabButton(labels[index], index, itemContext);
+                        },
+                      );
+                    },
                   ),
                 ),
               ),
@@ -117,6 +123,7 @@ class _PaymentRemainderScreenState extends State<PaymentRemainderScreen> {
                             _buildPaymentList("today"),
                             _buildPaymentList("expire"),
                             _buildPaymentList("nextup"),
+                            _buildPaymentList("complete"),
                           ],
                         ),
                       ),
@@ -252,43 +259,39 @@ class _PaymentRemainderScreenState extends State<PaymentRemainderScreen> {
     );
   }
 
-  Widget _tabButton(String text, int index) {
+  Widget _tabButton(String text, int index, BuildContext itemContext) {
     bool isSelected = controller.selectedTab == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          controller.changeTab(index);
-          _pageController.animateToPage(
-            index,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-          );
-        },
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF7B39FD) : Colors.transparent,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: const Color(0xFF7B39FD).withOpacity(0.3),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    )
-                  ]
-                : [],
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            text,
-            style: TextStyle(
-              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-              fontSize: 13,
-              color: isSelected ? Colors.white : const Color(0xFF6B7280),
-            ),
+    return GestureDetector(
+      onTap: () {
+        controller.changeTab(index);
+        _pageController.animateToPage(
+          index,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+        Scrollable.ensureVisible(
+          itemContext,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          alignment: 0.5,
+        );
+      },
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF7B39FD) : Colors.transparent,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          text,
+          style: TextStyle(
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+            fontSize: 13,
+            color: isSelected ? Colors.white : const Color(0xFF6B7280),
           ),
         ),
       ),
@@ -532,9 +535,23 @@ class PaymentCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(child: _actionButton(Icons.call_rounded, "Call", const Color(0xFF10B981), () {})),
+                Expanded(child: _actionButton(Icons.call_rounded, "Call", const Color(0xFF10B981), () async {
+                  try {
+                    final url = Uri.parse('tel:${payment.mobileNo}');
+                    await launchUrl(url);
+                  } catch (e) {
+                    Get.snackbar("Error", "Could not launch call", backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+                  }
+                })),
                 const SizedBox(width: 8),
-                Expanded(child: _actionButton(Icons.chat_bubble_rounded, "Message", const Color(0xFF3B82F6), () {})),
+                Expanded(child: _actionButton(Icons.chat_bubble_rounded, "Message", const Color(0xFF3B82F6), () async {
+                  try {
+                    final url = Uri.parse('sms:${payment.mobileNo}');
+                    await launchUrl(url);
+                  } catch (e) {
+                    Get.snackbar("Error", "Could not launch message", backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+                  }
+                })),
                 const SizedBox(width: 8),
                 Expanded(child: _actionButton(Icons.calendar_month_rounded, "Next", const Color(0xFFF59E0B), () async {
                    if (payment.id == null) return;
