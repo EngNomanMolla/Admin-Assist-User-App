@@ -1,104 +1,201 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../models/budget_model.dart';
+import '../provider/budget_provider.dart';
 import 'expense_controller.dart';
 
 class BudgetController extends GetxController {
+  final BudgetProvider _budgetProvider = BudgetProvider();
   var budgets = <Budget>[].obs;
+  var isLoading = false.obs;
 
   @override
   void onInit() {
     super.onInit();
-    // Add some dummy budgets
-    budgets.addAll([
-      Budget(
-        id: '1',
-        title: 'Monthly Food',
-        amount: 5000.0,
-        startDate: DateTime.now().subtract(const Duration(days: 10)),
-        endDate: DateTime.now().add(const Duration(days: 20)),
-        categoryId: '1', // Food category ID in ExpenseController
-      ),
-      Budget(
-        id: '2',
-        title: 'Transport Budget',
-        amount: 2000.0,
-        startDate: DateTime.now().subtract(const Duration(days: 5)),
-        endDate: DateTime.now().add(const Duration(days: 25)),
-        categoryId: '2', // Transport category ID in ExpenseController
-      ),
-      Budget(
-        id: '3',
-        title: 'Past Food Budget',
-        amount: 3000.0,
-        startDate: DateTime.now().subtract(const Duration(days: 40)),
-        endDate: DateTime.now().subtract(const Duration(days: 10)),
-        categoryId: '1',
-      ),
-    ]);
+    fetchBudgets();
   }
 
-  List<Budget> get activeBudgets => budgets.where((b) => b.endDate.isAfter(DateTime.now())).toList();
-  List<Budget> get completedBudgets => budgets.where((b) => b.endDate.isBefore(DateTime.now())).toList();
+  Future<void> fetchBudgets() async {
+    try {
+      isLoading.value = true;
+      final List<Budget> fetchedList = [];
 
-  void addBudget({
+      // Fetch active budgets
+      final activeResponse = await _budgetProvider.getBudgets(status: 'active');
+      if (activeResponse.statusCode == 200) {
+        final data = jsonDecode(activeResponse.body);
+        List<dynamic> list = [];
+        if (data is List) {
+          list = data;
+        } else if (data['budgets'] != null) {
+          list = data['budgets'];
+        } else if (data['data'] != null) {
+          list = data['data'];
+        }
+        fetchedList.addAll(list.map((e) => Budget.fromMap(e)));
+      }
+
+      // Fetch completed/history budgets
+      final completedResponse = await _budgetProvider.getBudgets(status: 'completed');
+      if (completedResponse.statusCode == 200) {
+        final data = jsonDecode(completedResponse.body);
+        List<dynamic> list = [];
+        if (data is List) {
+          list = data;
+        } else if (data['budgets'] != null) {
+          list = data['budgets'];
+        } else if (data['data'] != null) {
+          list = data['data'];
+        }
+        fetchedList.addAll(list.map((e) => Budget.fromMap(e)));
+      }
+
+      budgets.assignAll(fetchedList);
+    } catch (e) {
+      print("Error fetching budgets: $e");
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  List<Budget> get activeBudgets => budgets.where((b) => b.status == 'active').toList();
+  List<Budget> get completedBudgets => budgets.where((b) => b.status != 'active').toList();
+
+  Future<bool> addBudget({
     required String title,
     required double amount,
     required DateTime startDate,
     required DateTime endDate,
     required String categoryId,
-  }) {
-    final id = DateTime.now().millisecondsSinceEpoch.toString();
-    budgets.add(Budget(
-      id: id,
-      title: title,
-      amount: amount,
-      startDate: startDate,
-      endDate: endDate,
-      categoryId: categoryId,
-    ));
+  }) async {
+    try {
+      isLoading.value = true;
+      final startDateStr = "${startDate.year.toString().padLeft(4, '0')}-${startDate.month.toString().padLeft(2, '0')}-${startDate.day.toString().padLeft(2, '0')}";
+      final endDateStr = "${endDate.year.toString().padLeft(4, '0')}-${endDate.month.toString().padLeft(2, '0')}-${endDate.day.toString().padLeft(2, '0')}";
+
+      final response = await _budgetProvider.createBudget({
+        'title': title,
+        'amount': amount,
+        'expense_category_id': categoryId,
+        'start_date': startDateStr,
+        'end_date': endDateStr,
+      });
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final data = jsonDecode(response.body);
+        Map<String, dynamic> budgetMap = {};
+        if (data != null) {
+          if (data['budget'] != null) {
+            budgetMap = data['budget'];
+          } else {
+            budgetMap = data;
+          }
+        }
+        final newBudget = Budget.fromMap(budgetMap);
+        budgets.add(newBudget);
+        Get.snackbar("Success", "Budget created successfully",
+            backgroundColor: const Color(0xFFF97316).withOpacity(0.9), colorText: Colors.white);
+        return true;
+      } else {
+        final errorData = jsonDecode(response.body);
+        Get.snackbar("Error", errorData['message'] ?? "Failed to create budget",
+            backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+        return false;
+      }
+    } catch (e) {
+      print("Error creating budget: $e");
+      Get.snackbar("Error", "Network error occurred",
+          backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
   }
 
-  void updateBudget({
+  Future<bool> updateBudget({
     required String id,
     required String title,
     required double amount,
     required DateTime startDate,
     required DateTime endDate,
     required String categoryId,
-  }) {
-    final index = budgets.indexWhere((b) => b.id == id);
-    if (index != -1) {
-      budgets[index] = Budget(
-        id: id,
-        title: title,
-        amount: amount,
-        startDate: startDate,
-        endDate: endDate,
-        categoryId: categoryId,
-      );
+  }) async {
+    try {
+      isLoading.value = true;
+      final startDateStr = "${startDate.year.toString().padLeft(4, '0')}-${startDate.month.toString().padLeft(2, '0')}-${startDate.day.toString().padLeft(2, '0')}";
+      final endDateStr = "${endDate.year.toString().padLeft(4, '0')}-${endDate.month.toString().padLeft(2, '0')}-${endDate.day.toString().padLeft(2, '0')}";
+
+      final response = await _budgetProvider.updateBudget(id, {
+        'title': title,
+        'amount': amount,
+        'expense_category_id': categoryId,
+        'start_date': startDateStr,
+        'end_date': endDateStr,
+      });
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final data = jsonDecode(response.body);
+        Map<String, dynamic> budgetMap = {};
+        if (data != null) {
+          if (data['budget'] != null) {
+            budgetMap = data['budget'];
+          } else {
+            budgetMap = data;
+          }
+        }
+        final updated = Budget.fromMap(budgetMap);
+        final index = budgets.indexWhere((b) => b.id == id);
+        if (index != -1) {
+          budgets[index] = updated;
+        }
+        Get.snackbar("Success", "Budget updated successfully",
+            backgroundColor: const Color(0xFFF97316).withOpacity(0.9), colorText: Colors.white);
+        return true;
+      } else {
+        final errorData = jsonDecode(response.body);
+        Get.snackbar("Error", errorData['message'] ?? "Failed to update budget",
+            backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+        return false;
+      }
+    } catch (e) {
+      print("Error updating budget: $e");
+      Get.snackbar("Error", "Network error occurred",
+          backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+      return false;
+    } finally {
+      isLoading.value = false;
     }
   }
 
-  void deleteBudget(String id) {
-    budgets.removeWhere((b) => b.id == id);
+  Future<bool> deleteBudget(String id) async {
+    try {
+      isLoading.value = true;
+      final response = await _budgetProvider.deleteBudget(id);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        budgets.removeWhere((b) => b.id == id);
+        Get.snackbar("Success", "Budget deleted successfully",
+            backgroundColor: const Color(0xFFF97316).withOpacity(0.9), colorText: Colors.white);
+        return true;
+      } else {
+        final errorData = jsonDecode(response.body);
+        Get.snackbar("Error", errorData['message'] ?? "Failed to delete budget",
+            backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+        return false;
+      }
+    } catch (e) {
+      print("Error deleting budget: $e");
+      Get.snackbar("Error", "Network error occurred",
+          backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
   }
 
-  // Calculate spent amount dynamically
+  // Calculate spent amount from server computed field
   double getSpentAmount(Budget budget) {
-    // Ensure ExpenseController is initialized
-    if (!Get.isRegistered<ExpenseController>()) {
-      Get.put(ExpenseController());
-    }
-    final ExpenseController expenseController = Get.find<ExpenseController>();
-    
-    // Find transactions in the same category and within the date range
-    final matchingTransactions = expenseController.transactions.where((t) {
-      return t.categoryId == budget.categoryId &&
-          t.date.isAfter(budget.startDate.subtract(const Duration(seconds: 1))) &&
-          t.date.isBefore(budget.endDate.add(const Duration(seconds: 1)));
-    });
-
-    return matchingTransactions.fold(0.0, (sum, t) => sum + t.amount);
+    return budget.spent;
   }
 
   String getCategoryName(String categoryId) {

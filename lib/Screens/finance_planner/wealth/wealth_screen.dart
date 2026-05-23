@@ -531,192 +531,243 @@ class WealthScreen extends StatelessWidget {
   void _showAddCategoryDialog(BuildContext context, WealthController controller) {
     final textController = TextEditingController();
     Get.dialog(
-      Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        backgroundColor: Colors.white,
-        child: SingleChildScrollView(
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF7B39FD).withOpacity(0.1),
-                        shape: BoxShape.circle,
+      Obx(() {
+        final isLoading = controller.isLoading.value;
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          backgroundColor: Colors.white,
+          child: SingleChildScrollView(
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF7B39FD).withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.category_rounded, color: Color(0xFF7B39FD), size: 20),
                       ),
-                      child: const Icon(Icons.category_rounded, color: Color(0xFF7B39FD), size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'Add Category',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Category Name',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
-                ),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: textController,
-                  decoration: InputDecoration(
-                    hintText: 'Category Name',
-                    hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
-                    filled: true,
-                    fillColor: const Color(0xFFF3F4F6),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Add Category',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Get.back(),
-                      child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Category Name',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: textController,
+                    enabled: !isLoading,
+                    decoration: InputDecoration(
+                      hintText: 'Category Name',
+                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+                      filled: true,
+                      fillColor: const Color(0xFFF3F4F6),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     ),
-                    const SizedBox(width: 12),
-                    ElevatedButton(
-                      onPressed: () {
-                        if (textController.text.isNotEmpty) {
-                          controller.addCategory(textController.text);
-                          Get.back();
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF7B39FD),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        elevation: 0,
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: isLoading ? null : () => Navigator.pop(context),
+                        child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
                       ),
-                      child: const Text('Add', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                    ),
-                  ],
-                ),
-              ],
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        onPressed: isLoading
+                            ? null
+                            : () async {
+                                if (textController.text.isNotEmpty) {
+                                  final success = await controller.addCategory(textController.text);
+                                  if (success && context.mounted) {
+                                    Navigator.pop(context);
+                                  }
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF7B39FD),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          elevation: 0,
+                        ),
+                        child: isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : const Text('Add', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      }),
     );
   }
 
   void _showUpdateCategoryDialog(BuildContext context, WealthController controller, WealthCategory category) {
     final textController = TextEditingController(text: category.name);
     Get.dialog(
-      Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        backgroundColor: Colors.white,
-        child: SingleChildScrollView(
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF7B39FD).withOpacity(0.1),
-                        shape: BoxShape.circle,
+      Obx(() {
+        final isLoading = controller.isLoading.value;
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          backgroundColor: Colors.white,
+          child: SingleChildScrollView(
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF7B39FD).withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.edit_rounded, color: Color(0xFF7B39FD), size: 20),
                       ),
-                      child: const Icon(Icons.edit_rounded, color: Color(0xFF7B39FD), size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'Update Category',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Category Name',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
-                ),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: textController,
-                  decoration: InputDecoration(
-                    hintText: 'Category Name',
-                    hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
-                    filled: true,
-                    fillColor: const Color(0xFFF3F4F6),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Update Category',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Get.back(),
-                      child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Category Name',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: textController,
+                    enabled: !isLoading,
+                    decoration: InputDecoration(
+                      hintText: 'Category Name',
+                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+                      filled: true,
+                      fillColor: const Color(0xFFF3F4F6),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     ),
-                    const SizedBox(width: 12),
-                    ElevatedButton(
-                      onPressed: () {
-                        if (textController.text.isNotEmpty) {
-                          controller.updateCategory(id: category.id, name: textController.text);
-                          Get.back();
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF7B39FD),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        elevation: 0,
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: isLoading ? null : () => Navigator.pop(context),
+                        child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
                       ),
-                      child: const Text('Update', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                    ),
-                  ],
-                ),
-              ],
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        onPressed: isLoading
+                            ? null
+                            : () async {
+                                if (textController.text.isNotEmpty) {
+                                  final success = await controller.updateCategory(id: category.id, name: textController.text);
+                                  if (success && context.mounted) {
+                                    Navigator.pop(context);
+                                  }
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF7B39FD),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          elevation: 0,
+                        ),
+                        child: isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : const Text('Update', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      }),
     );
   }
 
   void _showDeleteCategoryConfirmation(BuildContext context, WealthController controller, String categoryId) {
     Get.dialog(
-      AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Delete Category'),
-        content: const Text('Are you sure you want to delete this category? Transactions in this category will be reset to "All".'),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280))),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              controller.deleteCategory(categoryId);
-              Get.back();
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+      Obx(() {
+        final isLoading = controller.isLoading.value;
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Delete Category'),
+          content: const Text('Are you sure you want to delete this category? Transactions in this category will be reset to "All".'),
+          actions: [
+            TextButton(
+              onPressed: isLoading ? null : () => Navigator.pop(context),
+              child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280))),
+            ),
+            ElevatedButton(
+              onPressed: isLoading
+                  ? null
+                  : () async {
+                      final success = await controller.deleteCategory(categoryId);
+                      if (success && context.mounted) {
+                        Navigator.pop(context);
+                      }
+                    },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Text('Delete', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      }),
     );
   }
 
   void _showAddTransactionDialog(BuildContext context, WealthController controller) {
     final titleController = TextEditingController();
     final amountController = TextEditingController();
+    final notesController = TextEditingController();
     String selectedCategory = controller.categories.isNotEmpty ? controller.categories.first.id : 'all';
 
     if (controller.categories.isEmpty) {
@@ -725,78 +776,81 @@ class WealthScreen extends StatelessWidget {
     }
 
     Get.dialog(
-      Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        backgroundColor: Colors.white,
-        child: SingleChildScrollView(
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF7B39FD).withOpacity(0.1),
-                        shape: BoxShape.circle,
+      Obx(() {
+        final isLoading = controller.isLoading.value;
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          backgroundColor: Colors.white,
+          child: SingleChildScrollView(
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF7B39FD).withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFF7B39FD), size: 20),
                       ),
-                      child: const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFF7B39FD), size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'Add Asset',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Title',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
-                ),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: titleController,
-                  decoration: InputDecoration(
-                    hintText: 'e.g. Monthly Salary',
-                    hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
-                    filled: true,
-                    fillColor: const Color(0xFFF3F4F6),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Add Asset',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Amount',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
-                ),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: amountController,
-                  decoration: InputDecoration(
-                    hintText: '0.00',
-                    hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
-                    prefixText: '৳ ',
-                    prefixStyle: const TextStyle(color: Color(0xFF111827), fontWeight: FontWeight.w600),
-                    filled: true,
-                    fillColor: const Color(0xFFF3F4F6),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Title',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
                   ),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Category',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
-                ),
-                const SizedBox(height: 6),
-                Obx(() {
-                  return DropdownButtonFormField<String>(
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: titleController,
+                    enabled: !isLoading,
+                    decoration: InputDecoration(
+                      hintText: 'e.g. Monthly Salary',
+                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+                      filled: true,
+                      fillColor: const Color(0xFFF3F4F6),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Amount',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: amountController,
+                    enabled: !isLoading,
+                    decoration: InputDecoration(
+                      hintText: '0.00',
+                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+                      prefixText: '৳ ',
+                      prefixStyle: const TextStyle(color: Color(0xFF111827), fontWeight: FontWeight.w600),
+                      filled: true,
+                      fillColor: const Color(0xFFF3F4F6),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Category',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
+                  ),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<String>(
                     value: selectedCategory == 'all' && controller.categories.isNotEmpty ? controller.categories.first.id : selectedCategory,
                     decoration: InputDecoration(
                       filled: true,
@@ -807,128 +861,166 @@ class WealthScreen extends StatelessWidget {
                     items: controller.categories.map((c) {
                       return DropdownMenuItem(value: c.id, child: Text(c.name));
                     }).toList(),
-                    onChanged: (val) {
-                      selectedCategory = val ?? 'all';
-                    },
-                  );
-                }),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Get.back(),
-                      child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
+                    onChanged: isLoading
+                        ? null
+                        : (val) {
+                            selectedCategory = val ?? 'all';
+                          },
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Notes',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: notesController,
+                    enabled: !isLoading,
+                    decoration: InputDecoration(
+                      hintText: 'e.g. Initial investment',
+                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+                      filled: true,
+                      fillColor: const Color(0xFFF3F4F6),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     ),
-                    const SizedBox(width: 12),
-                    ElevatedButton(
-                      onPressed: () {
-                        final amount = double.tryParse(amountController.text);
-                        if (titleController.text.isNotEmpty && amount != null) {
-                          controller.addTransaction(
-                            title: titleController.text,
-                            amount: amount,
-                            categoryId: selectedCategory,
-                          );
-                          Get.back();
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF7B39FD),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        elevation: 0,
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: isLoading ? null : () => Navigator.pop(context),
+                        child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
                       ),
-                      child: const Text('Add Asset', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                    ),
-                  ],
-                ),
-              ],
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        onPressed: isLoading
+                            ? null
+                            : () async {
+                                final amount = double.tryParse(amountController.text);
+                                if (titleController.text.isNotEmpty && amount != null) {
+                                  final success = await controller.addTransaction(
+                                    title: titleController.text,
+                                    amount: amount,
+                                    categoryId: selectedCategory,
+                                    notes: notesController.text,
+                                  );
+                                  if (success && context.mounted) {
+                                    Navigator.pop(context);
+                                  }
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF7B39FD),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          elevation: 0,
+                        ),
+                        child: isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : const Text('Add Asset', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      }),
     );
   }
 
   void _showUpdateTransactionDialog(BuildContext context, WealthController controller, WealthTransaction transaction) {
     final titleController = TextEditingController(text: transaction.title);
     final amountController = TextEditingController(text: transaction.amount.toString());
+    final notesController = TextEditingController(text: transaction.notes);
     String selectedCategory = transaction.categoryId;
 
     Get.dialog(
-      Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        backgroundColor: Colors.white,
-        child: SingleChildScrollView(
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF7B39FD).withOpacity(0.1),
-                        shape: BoxShape.circle,
+      Obx(() {
+        final isLoading = controller.isLoading.value;
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          backgroundColor: Colors.white,
+          child: SingleChildScrollView(
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF7B39FD).withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.edit_rounded, color: Color(0xFF7B39FD), size: 20),
                       ),
-                      child: const Icon(Icons.edit_rounded, color: Color(0xFF7B39FD), size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'Update Asset',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Title',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
-                ),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: titleController,
-                  decoration: InputDecoration(
-                    hintText: 'e.g. Monthly Salary',
-                    hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
-                    filled: true,
-                    fillColor: const Color(0xFFF3F4F6),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Update Asset',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Amount',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
-                ),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: amountController,
-                  decoration: InputDecoration(
-                    hintText: '0.00',
-                    hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
-                    prefixText: '৳ ',
-                    prefixStyle: const TextStyle(color: Color(0xFF111827), fontWeight: FontWeight.w600),
-                    filled: true,
-                    fillColor: const Color(0xFFF3F4F6),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Title',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
                   ),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Category',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
-                ),
-                const SizedBox(height: 6),
-                Obx(() {
-                  return DropdownButtonFormField<String>(
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: titleController,
+                    enabled: !isLoading,
+                    decoration: InputDecoration(
+                      hintText: 'e.g. Monthly Salary',
+                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+                      filled: true,
+                      fillColor: const Color(0xFFF3F4F6),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Amount',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: amountController,
+                    enabled: !isLoading,
+                    decoration: InputDecoration(
+                      hintText: '0.00',
+                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+                      prefixText: '৳ ',
+                      prefixStyle: const TextStyle(color: Color(0xFF111827), fontWeight: FontWeight.w600),
+                      filled: true,
+                      fillColor: const Color(0xFFF3F4F6),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Category',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
+                  ),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<String>(
                     value: selectedCategory,
                     decoration: InputDecoration(
                       filled: true,
@@ -939,72 +1031,122 @@ class WealthScreen extends StatelessWidget {
                     items: controller.categories.map((c) {
                       return DropdownMenuItem(value: c.id, child: Text(c.name));
                     }).toList(),
-                    onChanged: (val) {
-                      selectedCategory = val ?? 'all';
-                    },
-                  );
-                }),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Get.back(),
-                      child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
+                    onChanged: isLoading
+                        ? null
+                        : (val) {
+                            selectedCategory = val ?? 'all';
+                          },
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Notes',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: notesController,
+                    enabled: !isLoading,
+                    decoration: InputDecoration(
+                      hintText: 'e.g. Initial investment',
+                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+                      filled: true,
+                      fillColor: const Color(0xFFF3F4F6),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     ),
-                    const SizedBox(width: 12),
-                    ElevatedButton(
-                      onPressed: () {
-                        final amount = double.tryParse(amountController.text);
-                        if (titleController.text.isNotEmpty && amount != null) {
-                          controller.updateTransaction(
-                            id: transaction.id,
-                            title: titleController.text,
-                            amount: amount,
-                            categoryId: selectedCategory,
-                          );
-                          Get.back();
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF7B39FD),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        elevation: 0,
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: isLoading ? null : () => Navigator.pop(context),
+                        child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
                       ),
-                      child: const Text('Update', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                    ),
-                  ],
-                ),
-              ],
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        onPressed: isLoading
+                            ? null
+                            : () async {
+                                final amount = double.tryParse(amountController.text);
+                                if (titleController.text.isNotEmpty && amount != null) {
+                                  final success = await controller.updateTransaction(
+                                    id: transaction.id,
+                                    title: titleController.text,
+                                    amount: amount,
+                                    categoryId: selectedCategory,
+                                    notes: notesController.text,
+                                  );
+                                  if (success && context.mounted) {
+                                    Navigator.pop(context);
+                                  }
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF7B39FD),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          elevation: 0,
+                        ),
+                        child: isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : const Text('Update', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      }),
     );
   }
 
   void _showDeleteConfirmation(BuildContext context, WealthController controller, String transactionId) {
     Get.dialog(
-      AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Delete Transaction'),
-        content: const Text('Are you sure you want to delete this transaction?'),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280))),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              controller.deleteTransaction(transactionId);
-              Get.back();
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+      Obx(() {
+        final isLoading = controller.isLoading.value;
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Delete Transaction'),
+          content: const Text('Are you sure you want to delete this transaction?'),
+          actions: [
+            TextButton(
+              onPressed: isLoading ? null : () => Navigator.pop(context),
+              child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280))),
+            ),
+            ElevatedButton(
+              onPressed: isLoading
+                  ? null
+                  : () async {
+                      final success = await controller.deleteTransaction(transactionId);
+                      if (success && context.mounted) {
+                        Navigator.pop(context);
+                      }
+                    },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Text('Delete', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      }),
     );
   }
 
@@ -1068,7 +1210,7 @@ class WealthScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
-                      onPressed: () => Get.back(),
+                      onPressed: () => Navigator.pop(context),
                       child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
                     ),
                     const SizedBox(width: 12),
@@ -1077,7 +1219,9 @@ class WealthScreen extends StatelessWidget {
                         final addAmount = double.tryParse(amountController.text) ?? 0.0;
                         if (addAmount > 0) {
                           controller.addGotAmount(transaction.id, addAmount);
-                          Get.back();
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                          }
                           Get.snackbar("Success", "Amount added successfully", 
                             snackPosition: SnackPosition.BOTTOM,
                             backgroundColor: Colors.white,

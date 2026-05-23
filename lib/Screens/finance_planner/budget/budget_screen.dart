@@ -75,6 +75,13 @@ class BudgetScreen extends StatelessWidget {
 
   Widget _buildBudgetList(BudgetController controller, bool isActive) {
     return Obx(() {
+      if (controller.isLoading.value && controller.budgets.isEmpty) {
+        return const Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFF97316)),
+          ),
+        );
+      }
       final budgets = isActive ? controller.activeBudgets : controller.completedBudgets;
       if (budgets.isEmpty) {
         return Center(
@@ -248,8 +255,8 @@ class BudgetScreen extends StatelessWidget {
     final ExpenseController expenseController = Get.find<ExpenseController>();
     
     String selectedCategory = expenseController.categories.isNotEmpty ? expenseController.categories.first.id : 'all';
-    DateTime startDate = DateTime.now();
-    DateTime endDate = DateTime.now().add(const Duration(days: 30));
+    final startDateRx = DateTime.now().obs;
+    final endDateRx = DateTime.now().add(const Duration(days: 30)).obs;
 
     Get.dialog(
       Dialog(
@@ -285,8 +292,9 @@ class BudgetScreen extends StatelessWidget {
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
                 ),
                 const SizedBox(height: 6),
-                TextField(
+                Obx(() => TextField(
                   controller: titleController,
+                  enabled: !controller.isLoading.value,
                   decoration: InputDecoration(
                     hintText: 'e.g. Monthly Food',
                     hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
@@ -295,15 +303,16 @@ class BudgetScreen extends StatelessWidget {
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
-                ),
+                )),
                 const SizedBox(height: 16),
                 const Text(
                   'Budget Amount',
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
                 ),
                 const SizedBox(height: 6),
-                TextField(
+                Obx(() => TextField(
                   controller: amountController,
+                  enabled: !controller.isLoading.value,
                   decoration: InputDecoration(
                     hintText: '0.00',
                     hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
@@ -315,14 +324,14 @@ class BudgetScreen extends StatelessWidget {
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                ),
+                )),
                 const SizedBox(height: 16),
                 const Text(
                   'Category',
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
                 ),
                 const SizedBox(height: 6),
-                DropdownButtonFormField<String>(
+                Obx(() => DropdownButtonFormField<String>(
                   value: selectedCategory,
                   decoration: InputDecoration(
                     filled: true,
@@ -333,23 +342,23 @@ class BudgetScreen extends StatelessWidget {
                   items: expenseController.categories.map((c) {
                     return DropdownMenuItem(value: c.id, child: Text(c.name));
                   }).toList(),
-                  onChanged: (val) {
+                  onChanged: controller.isLoading.value ? null : (val) {
                     selectedCategory = val ?? 'all';
                   },
-                ),
+                )),
                 const SizedBox(height: 16),
                 const Text('Start Date', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563))),
                 const SizedBox(height: 6),
-                ElevatedButton(
-                  onPressed: () async {
+                Obx(() => ElevatedButton(
+                  onPressed: controller.isLoading.value ? null : () async {
                     final picked = await showDatePicker(
                       context: context,
-                      initialDate: startDate,
+                      initialDate: startDateRx.value,
                       firstDate: DateTime(2000),
                       lastDate: DateTime(2100),
                     );
                     if (picked != null) {
-                      startDate = picked;
+                      startDateRx.value = picked;
                     }
                   },
                   style: ElevatedButton.styleFrom(
@@ -360,21 +369,21 @@ class BudgetScreen extends StatelessWidget {
                     minimumSize: const Size(double.infinity, 45),
                     alignment: Alignment.centerLeft,
                   ),
-                  child: Text(DateFormat('dd MMM yyyy').format(startDate), style: const TextStyle(color: Color(0xFF111827))),
-                ),
+                  child: Text(DateFormat('dd MMM yyyy').format(startDateRx.value), style: const TextStyle(color: Color(0xFF111827))),
+                )),
                 const SizedBox(height: 16),
                 const Text('End Date', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563))),
                 const SizedBox(height: 6),
-                ElevatedButton(
-                  onPressed: () async {
+                Obx(() => ElevatedButton(
+                  onPressed: controller.isLoading.value ? null : () async {
                     final picked = await showDatePicker(
                       context: context,
-                      initialDate: endDate,
+                      initialDate: endDateRx.value,
                       firstDate: DateTime(2000),
                       lastDate: DateTime(2100),
                     );
                     if (picked != null) {
-                      endDate = picked;
+                      endDateRx.value = picked;
                     }
                   },
                   style: ElevatedButton.styleFrom(
@@ -385,29 +394,31 @@ class BudgetScreen extends StatelessWidget {
                     minimumSize: const Size(double.infinity, 45),
                     alignment: Alignment.centerLeft,
                   ),
-                  child: Text(DateFormat('dd MMM yyyy').format(endDate), style: const TextStyle(color: Color(0xFF111827))),
-                ),
+                  child: Text(DateFormat('dd MMM yyyy').format(endDateRx.value), style: const TextStyle(color: Color(0xFF111827))),
+                )),
                 const SizedBox(height: 24),
-                Row(
+                Obx(() => Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
-                      onPressed: () => Get.back(),
+                      onPressed: controller.isLoading.value ? null : () => Navigator.pop(context),
                       child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
                     ),
                     const SizedBox(width: 12),
                     ElevatedButton(
-                      onPressed: () {
+                      onPressed: controller.isLoading.value ? null : () async {
                         final amount = double.tryParse(amountController.text) ?? 0.0;
                         if (titleController.text.isNotEmpty) {
-                          controller.addBudget(
+                          final success = await controller.addBudget(
                             title: titleController.text,
                             amount: amount,
-                            startDate: startDate,
-                            endDate: endDate,
+                            startDate: startDateRx.value,
+                            endDate: endDateRx.value,
                             categoryId: selectedCategory,
                           );
-                          Get.back();
+                          if (success && context.mounted) {
+                            Navigator.pop(context);
+                          }
                         }
                       },
                       style: ElevatedButton.styleFrom(
@@ -416,10 +427,19 @@ class BudgetScreen extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                         elevation: 0,
                       ),
-                      child: const Text('Add Budget', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                      child: controller.isLoading.value
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text('Add Budget', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
                     ),
                   ],
-                ),
+                )),
               ],
             ),
           ),
@@ -434,8 +454,8 @@ class BudgetScreen extends StatelessWidget {
     final ExpenseController expenseController = Get.find<ExpenseController>();
     
     String selectedCategory = budget.categoryId;
-    DateTime startDate = budget.startDate;
-    DateTime endDate = budget.endDate;
+    final startDateRx = budget.startDate.obs;
+    final endDateRx = budget.endDate.obs;
 
     Get.dialog(
       Dialog(
@@ -471,8 +491,9 @@ class BudgetScreen extends StatelessWidget {
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
                 ),
                 const SizedBox(height: 6),
-                TextField(
+                Obx(() => TextField(
                   controller: titleController,
+                  enabled: !controller.isLoading.value,
                   decoration: InputDecoration(
                     hintText: 'e.g. Monthly Food',
                     hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
@@ -481,15 +502,16 @@ class BudgetScreen extends StatelessWidget {
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
-                ),
+                )),
                 const SizedBox(height: 16),
                 const Text(
                   'Budget Amount',
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
                 ),
                 const SizedBox(height: 6),
-                TextField(
+                Obx(() => TextField(
                   controller: amountController,
+                  enabled: !controller.isLoading.value,
                   decoration: InputDecoration(
                     hintText: '0.00',
                     hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
@@ -501,14 +523,14 @@ class BudgetScreen extends StatelessWidget {
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                ),
+                )),
                 const SizedBox(height: 16),
                 const Text(
                   'Category',
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
                 ),
                 const SizedBox(height: 6),
-                DropdownButtonFormField<String>(
+                Obx(() => DropdownButtonFormField<String>(
                   value: selectedCategory,
                   decoration: InputDecoration(
                     filled: true,
@@ -519,23 +541,23 @@ class BudgetScreen extends StatelessWidget {
                   items: expenseController.categories.map((c) {
                     return DropdownMenuItem(value: c.id, child: Text(c.name));
                   }).toList(),
-                  onChanged: (val) {
+                  onChanged: controller.isLoading.value ? null : (val) {
                     selectedCategory = val ?? 'all';
                   },
-                ),
+                )),
                 const SizedBox(height: 16),
                 const Text('Start Date', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563))),
                 const SizedBox(height: 6),
-                ElevatedButton(
-                  onPressed: () async {
+                Obx(() => ElevatedButton(
+                  onPressed: controller.isLoading.value ? null : () async {
                     final picked = await showDatePicker(
                       context: context,
-                      initialDate: startDate,
+                      initialDate: startDateRx.value,
                       firstDate: DateTime(2000),
                       lastDate: DateTime(2100),
                     );
                     if (picked != null) {
-                      startDate = picked;
+                      startDateRx.value = picked;
                     }
                   },
                   style: ElevatedButton.styleFrom(
@@ -546,21 +568,21 @@ class BudgetScreen extends StatelessWidget {
                     minimumSize: const Size(double.infinity, 45),
                     alignment: Alignment.centerLeft,
                   ),
-                  child: Text(DateFormat('dd MMM yyyy').format(startDate), style: const TextStyle(color: Color(0xFF111827))),
-                ),
+                  child: Text(DateFormat('dd MMM yyyy').format(startDateRx.value), style: const TextStyle(color: Color(0xFF111827))),
+                )),
                 const SizedBox(height: 16),
                 const Text('End Date', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563))),
                 const SizedBox(height: 6),
-                ElevatedButton(
-                  onPressed: () async {
+                Obx(() => ElevatedButton(
+                  onPressed: controller.isLoading.value ? null : () async {
                     final picked = await showDatePicker(
                       context: context,
-                      initialDate: endDate,
+                      initialDate: endDateRx.value,
                       firstDate: DateTime(2000),
                       lastDate: DateTime(2100),
                     );
                     if (picked != null) {
-                      endDate = picked;
+                      endDateRx.value = picked;
                     }
                   },
                   style: ElevatedButton.styleFrom(
@@ -571,30 +593,32 @@ class BudgetScreen extends StatelessWidget {
                     minimumSize: const Size(double.infinity, 45),
                     alignment: Alignment.centerLeft,
                   ),
-                  child: Text(DateFormat('dd MMM yyyy').format(endDate), style: const TextStyle(color: Color(0xFF111827))),
-                ),
+                  child: Text(DateFormat('dd MMM yyyy').format(endDateRx.value), style: const TextStyle(color: Color(0xFF111827))),
+                )),
                 const SizedBox(height: 24),
-                Row(
+                Obx(() => Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
-                      onPressed: () => Get.back(),
+                      onPressed: controller.isLoading.value ? null : () => Navigator.pop(context),
                       child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
                     ),
                     const SizedBox(width: 12),
                     ElevatedButton(
-                      onPressed: () {
+                      onPressed: controller.isLoading.value ? null : () async {
                         final amount = double.tryParse(amountController.text) ?? 0.0;
                         if (titleController.text.isNotEmpty) {
-                          controller.updateBudget(
+                          final success = await controller.updateBudget(
                             id: budget.id,
                             title: titleController.text,
                             amount: amount,
-                            startDate: startDate,
-                            endDate: endDate,
+                            startDate: startDateRx.value,
+                            endDate: endDateRx.value,
                             categoryId: selectedCategory,
                           );
-                          Get.back();
+                          if (success && context.mounted) {
+                            Navigator.pop(context);
+                          }
                         }
                       },
                       style: ElevatedButton.styleFrom(
@@ -603,10 +627,19 @@ class BudgetScreen extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                         elevation: 0,
                       ),
-                      child: const Text('Update', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                      child: controller.isLoading.value
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text('Update', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
                     ),
                   ],
-                ),
+                )),
               ],
             ),
           ),
@@ -617,25 +650,36 @@ class BudgetScreen extends StatelessWidget {
 
   void _showDeleteConfirmation(BuildContext context, BudgetController controller, String budgetId) {
     Get.dialog(
-      AlertDialog(
+      Obx(() => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Delete Budget'),
         content: const Text('Are you sure you want to delete this budget?'),
         actions: [
           TextButton(
-            onPressed: () => Get.back(),
+            onPressed: controller.isLoading.value ? null : () => Navigator.pop(context),
             child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280))),
           ),
           ElevatedButton(
-            onPressed: () {
-              controller.deleteBudget(budgetId);
-              Get.back();
+            onPressed: controller.isLoading.value ? null : () async {
+              final success = await controller.deleteBudget(budgetId);
+              if (success && context.mounted) {
+                Navigator.pop(context);
+              }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+            child: controller.isLoading.value
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : const Text('Delete', style: TextStyle(color: Colors.white)),
           ),
         ],
-      ),
+      )),
     );
   }
 }
