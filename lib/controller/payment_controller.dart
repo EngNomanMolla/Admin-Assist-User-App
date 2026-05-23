@@ -42,21 +42,44 @@ class PaymentController extends GetxController {
           if (payment.id != null) {
             double due = double.tryParse(payment.amount) ?? 0;
             if (due == 0 || payment.status == "complete") {
-              // Cancel notification if it exists
+              // Cancel notifications if they exist
               await NotificationService().cancelNotification(payment.id!);
+              await NotificationService().cancelNotification(payment.id! + 100000);
               continue; // Skip scheduling
             }
             try {
               DateTime dueDate = DateTime.parse(payment.time);
               String repeatKey = payment.repeat.toLowerCase();
               
-              await NotificationService().scheduleTaskNotification(
-                payment.id!,
-                "Payment Reminder: ${payment.name}",
-                payment.note.isNotEmpty ? payment.note : "You have a payment reminder.",
-                dueDate,
-                repeat: repeatKey,
-              );
+              if (repeatKey != 'once' && payment.nextPaymentDate != null) {
+                // Schedule one-time notification for the rescheduled current date
+                await NotificationService().scheduleTaskNotification(
+                  payment.id!,
+                  "Payment Reminder: ${payment.name}",
+                  payment.note.isNotEmpty ? payment.note : "You have a payment reminder.",
+                  dueDate,
+                  repeat: 'once',
+                );
+
+                // Schedule the repeating notification starting on the next_payment_date
+                DateTime nextRepeatDate = DateTime.parse(payment.nextPaymentDate!);
+                await NotificationService().scheduleTaskNotification(
+                  payment.id! + 100000,
+                  "Payment Reminder (Repeat): ${payment.name}",
+                  payment.note.isNotEmpty ? payment.note : "You have a payment reminder.",
+                  nextRepeatDate,
+                  repeat: repeatKey,
+                );
+              } else {
+                await NotificationService().scheduleTaskNotification(
+                  payment.id!,
+                  "Payment Reminder: ${payment.name}",
+                  payment.note.isNotEmpty ? payment.note : "You have a payment reminder.",
+                  dueDate,
+                  repeat: repeatKey,
+                );
+                await NotificationService().cancelNotification(payment.id! + 100000);
+              }
             } catch (e) {
               print("Error scheduling notification for payment ${payment.id}: $e");
             }
@@ -127,6 +150,10 @@ class PaymentController extends GetxController {
       update();
       final response = await _paymentProvider.deletePayment(payment.id!);
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        // Cancel local notifications
+        await NotificationService().cancelNotification(payment.id!);
+        await NotificationService().cancelNotification(payment.id! + 100000);
+
         Get.snackbar(
           "Success", 
           "Payment reminder deleted successfully", 
@@ -310,22 +337,28 @@ class PaymentController extends GetxController {
         isLoading.value = true;
         update();
 
+        final reminderDate = selectedReminderDate ?? DateTime.now();
+        final repeatKey = repeatLabelToKey[selectedRepeat.value] ?? "once";
+        final nextPayDate = _calculateNextPaymentDate(
+          baseDate: reminderDate,
+          repeatKey: repeatKey,
+          limitDate: reminderDate,
+        );
+
         Map<String, dynamic> body = {
           "client_name": nameController.text,
           "mobile_no": mobileController.text,
           "due_amount": double.tryParse(dueAmountController.text) ?? 0,
           "total_amount": double.tryParse(totalAmountController.text) ?? 0,
           "reminder_text": noteController.text,
-          "reminder_date": selectedReminderDate != null 
-              ? DateFormat('yyyy-MM-dd HH:mm:ss').format(selectedReminderDate!)
-              : DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
-          "repeat": repeatLabelToKey[selectedRepeat.value] ?? "monthly",
+          "reminder_date": DateFormat('yyyy-MM-dd HH:mm:ss').format(reminderDate),
+          "repeat": repeatKey,
           "status": "nextup", 
           "notification_enabled": true,
           "notify_before_minutes": 30,
           "notification_title": "Payment due soon",
           "notification_body": "Collect monthly installment from ${nameController.text}.",
-          "next_payment_date": DateFormat('yyyy-MM-dd').format(DateTime.now().add(const Duration(days: 30))),
+          "next_payment_date": nextPayDate,
         };
 
         final response = isEditing 
@@ -346,16 +379,10 @@ class PaymentController extends GetxController {
             print("Error parsing payment ID: $e");
           }
 
-          // Schedule Local Notification
-          if (paymentId != 0 && selectedReminderDate != null) {
-            String repeatKey = repeatLabelToKey[selectedRepeat.value] ?? "once";
-            await NotificationService().scheduleTaskNotification(
-              paymentId,
-              "Payment Reminder: ${nameController.text}",
-              noteController.text.isNotEmpty ? noteController.text : "You have a payment reminder.",
-              selectedReminderDate!,
-              repeat: repeatKey,
-            );
+          // Cancel any existing notifications for this ID so fetchPayments can reschedule fresh
+          if (paymentId != 0) {
+            await NotificationService().cancelNotification(paymentId);
+            await NotificationService().cancelNotification(paymentId + 100000);
           }
 
           Get.back();
@@ -397,6 +424,13 @@ class PaymentController extends GetxController {
       isLoading.value = true;
       update();
 
+      DateTime originalDate = DateTime.tryParse(payment.time) ?? DateTime.now();
+      final nextPayDate = _calculateNextPaymentDate(
+        baseDate: originalDate,
+        repeatKey: payment.repeat,
+        limitDate: newDate,
+      );
+
       Map<String, dynamic> body = {
         "client_name": payment.name,
         "mobile_no": payment.mobileNo,
@@ -410,22 +444,15 @@ class PaymentController extends GetxController {
         "notify_before_minutes": 30,
         "notification_title": "Payment due soon",
         "notification_body": "Collect monthly installment from ${payment.name}.",
-        "next_payment_date": DateFormat('yyyy-MM-dd').format(newDate.add(const Duration(days: 30))),
+        "next_payment_date": nextPayDate,
       };
 
       final response = await _paymentProvider.updatePayment(payment.id!, body);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        // Update Local Notification
         if (payment.id != null) {
-          String repeatKey = payment.repeat.toLowerCase();
-          await NotificationService().scheduleTaskNotification(
-            payment.id!,
-            "Payment Reminder: ${payment.name}",
-            payment.note.isNotEmpty ? payment.note : "You have a payment reminder.",
-            newDate,
-            repeat: repeatKey,
-          );
+          await NotificationService().cancelNotification(payment.id!);
+          await NotificationService().cancelNotification(payment.id! + 100000);
         }
 
         Get.snackbar(
@@ -447,6 +474,78 @@ class PaymentController extends GetxController {
       isLoading.value = false;
       update();
     }
+  }
+
+  String _calculateNextPaymentDate({
+    required DateTime baseDate,
+    required String repeatKey,
+    required DateTime limitDate,
+  }) {
+    DateTime nextDate = baseDate;
+    final rKey = repeatKey.toLowerCase().replaceAll('-', '_');
+    
+    if (rKey == 'once') {
+      return DateFormat('yyyy-MM-dd HH:mm:ss').format(baseDate);
+    }
+    
+    while (nextDate.isBefore(limitDate) || nextDate.isAtSameMomentAs(limitDate)) {
+      if (rKey == 'daily') {
+        nextDate = nextDate.add(const Duration(days: 1));
+      } else if (rKey == 'weekly') {
+        nextDate = nextDate.add(const Duration(days: 7));
+      } else if (rKey == 'monthly' || rKey == 'month') {
+        int nextMonth = nextDate.month + 1;
+        int nextYear = nextDate.year;
+        if (nextMonth > 12) {
+          nextMonth = 1;
+          nextYear += 1;
+        }
+        int maxDays = DateTime(nextYear, nextMonth + 1, 0).day;
+        int nextDay = baseDate.day > maxDays ? maxDays : baseDate.day;
+        nextDate = DateTime(
+          nextYear,
+          nextMonth,
+          nextDay,
+          baseDate.hour,
+          baseDate.minute,
+          baseDate.second,
+        );
+      } else if (rKey == 'half_yearly' || rKey == 'half_year') {
+        int nextMonth = nextDate.month + 6;
+        int nextYear = nextDate.year;
+        if (nextMonth > 12) {
+          nextMonth = nextMonth - 12;
+          nextYear += 1;
+        }
+        int maxDays = DateTime(nextYear, nextMonth + 1, 0).day;
+        int nextDay = baseDate.day > maxDays ? maxDays : baseDate.day;
+        nextDate = DateTime(
+          nextYear,
+          nextMonth,
+          nextDay,
+          baseDate.hour,
+          baseDate.minute,
+          baseDate.second,
+        );
+      } else if (rKey == 'yearly' || rKey == 'year') {
+        int nextYear = nextDate.year + 1;
+        int nextMonth = nextDate.month;
+        int maxDays = DateTime(nextYear, nextMonth + 1, 0).day;
+        int nextDay = baseDate.day > maxDays ? maxDays : baseDate.day;
+        nextDate = DateTime(
+          nextYear,
+          nextMonth,
+          nextDay,
+          baseDate.hour,
+          baseDate.minute,
+          baseDate.second,
+        );
+      } else {
+        nextDate = nextDate.add(const Duration(days: 30));
+      }
+    }
+    
+    return DateFormat('yyyy-MM-dd HH:mm:ss').format(nextDate);
   }
 }
 

@@ -8,6 +8,7 @@ class PaymentModel {
   final String status;
   final String repeat;
   final String note;
+  final String? nextPaymentDate;
   final List<PaymentRecordModel>? records;
 
   PaymentModel({
@@ -20,6 +21,7 @@ class PaymentModel {
     required this.status,
     required this.repeat,
     this.note = "",
+    this.nextPaymentDate,
     this.records,
   });
 
@@ -34,6 +36,7 @@ class PaymentModel {
       status: map['status'] ?? 'today',
       repeat: map['repeat'] ?? 'monthly',
       note: map['reminder_text'] ?? '',
+      nextPaymentDate: map['next_payment_date'],
       records: map['records'] != null
           ? (map['records'] as List)
               .map((e) => PaymentRecordModel.fromMap(e))
