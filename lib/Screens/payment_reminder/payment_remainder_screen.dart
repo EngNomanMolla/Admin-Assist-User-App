@@ -7,6 +7,7 @@ import 'package:flutter_widgets/controller/payment_controller.dart';
 import 'package:flutter_widgets/Models/payment_models.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:auto_size_text/auto_size_text.dart';
 
 import 'package:flutter_widgets/screens/payment_reminder/widgets/add_payment_dialog.dart';
 import 'package:shimmer/shimmer.dart';
@@ -373,7 +374,11 @@ class PaymentCard extends StatelessWidget {
                                 Text(
                                   () {
                                     try {
-                                      DateTime dt = DateTime.parse(payment.time);
+                                      String t = payment.time;
+                                      if (t.endsWith('Z')) {
+                                        t = t.replaceAll('Z', '');
+                                      }
+                                      DateTime dt = DateTime.parse(t);
                                       return DateFormat('d MMMM yyyy   h.mm a').format(dt);
                                     } catch (e) {
                                       return payment.time;
@@ -471,37 +476,60 @@ class PaymentCard extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF3B82F6).withOpacity(0.08),
-                          borderRadius: BorderRadius.circular(10),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF3B82F6).withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              children: [
+                                const Text("Total: ", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF3B82F6))),
+                                Expanded(
+                                  child: AutoSizeText(
+                                    payment.totalAmount.replaceAll('\$', ''),
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF3B82F6)),
+                                    maxLines: 1,
+                                    minFontSize: 8,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                        child: Row(
-                          children: [
-                            const Text("Total: ", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF3B82F6))),
-                            Text(payment.totalAmount.replaceAll('\$', ''), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF3B82F6))),
-                          ],
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF7B39FD).withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              children: [
+                                const Text("Due: ", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF7B39FD))),
+                                Expanded(
+                                  child: AutoSizeText(
+                                    payment.amount.replaceAll('\$', ''),
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF7B39FD)),
+                                    maxLines: 1,
+                                    minFontSize: 8,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF7B39FD).withOpacity(0.08),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Row(
-                          children: [
-                            const Text("Due: ", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF7B39FD))),
-                            Text(payment.amount.replaceAll('\$', ''), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF7B39FD))),
-                          ],
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   InkWell(
                    onTap: () {
                      if (payment.id != null) {

@@ -37,7 +37,7 @@ class BudgetController extends GetxController {
       }
 
       // Fetch completed/history budgets
-      final completedResponse = await _budgetProvider.getBudgets(status: 'completed');
+      final completedResponse = await _budgetProvider.getBudgets(status: 'inactive');
       if (completedResponse.statusCode == 200) {
         final data = jsonDecode(completedResponse.body);
         List<dynamic> list = [];

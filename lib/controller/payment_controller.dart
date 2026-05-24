@@ -48,7 +48,11 @@ class PaymentController extends GetxController {
               continue; // Skip scheduling
             }
             try {
-              DateTime dueDate = DateTime.parse(payment.time);
+              String dateStr = payment.time;
+              if (dateStr.endsWith('Z')) {
+                dateStr = dateStr.replaceAll('Z', '');
+              }
+              DateTime dueDate = DateTime.parse(dateStr);
               String repeatKey = payment.repeat.toLowerCase();
               
               if (repeatKey != 'once' && payment.nextPaymentDate != null) {
@@ -62,7 +66,11 @@ class PaymentController extends GetxController {
                 );
 
                 // Schedule the repeating notification starting on the next_payment_date
-                DateTime nextRepeatDate = DateTime.parse(payment.nextPaymentDate!);
+                String nextDateStr = payment.nextPaymentDate!;
+                if (nextDateStr.endsWith('Z')) {
+                  nextDateStr = nextDateStr.replaceAll('Z', '');
+                }
+                DateTime nextRepeatDate = DateTime.parse(nextDateStr);
                 await NotificationService().scheduleTaskNotification(
                   payment.id! + 100000,
                   "Payment Reminder (Repeat): ${payment.name}",
@@ -424,7 +432,11 @@ class PaymentController extends GetxController {
       isLoading.value = true;
       update();
 
-      DateTime originalDate = DateTime.tryParse(payment.time) ?? DateTime.now();
+      String timeStr = payment.time;
+      if (timeStr.endsWith('Z')) {
+        timeStr = timeStr.replaceAll('Z', '');
+      }
+      DateTime originalDate = DateTime.tryParse(timeStr) ?? DateTime.now();
       final nextPayDate = _calculateNextPaymentDate(
         baseDate: originalDate,
         repeatKey: payment.repeat,

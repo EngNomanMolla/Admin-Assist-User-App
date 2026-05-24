@@ -217,7 +217,11 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
                             Text(
                               () {
                                 try {
-                                  DateTime dt = DateTime.parse(detail.time);
+                                  String t = detail.time;
+                                  if (t.endsWith('Z')) {
+                                    t = t.replaceAll('Z', '');
+                                  }
+                                  DateTime dt = DateTime.parse(t);
                                   return DateFormat('d MMM yyyy').format(dt);
                                 } catch (e) {
                                   return detail.time;
@@ -326,7 +330,11 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
                           String dateStr = item.date;
                           String dayStr = "";
                           try {
-                            DateTime dt = DateTime.parse(item.date);
+                            String t = item.date;
+                            if (t.endsWith('Z')) {
+                              t = t.replaceAll('Z', '');
+                            }
+                            DateTime dt = DateTime.parse(t);
                             dateStr = DateFormat('MMMM d, yyyy').format(dt);
                             dayStr = DateFormat('EEEE').format(dt);
                           } catch (e) {}
