@@ -169,16 +169,17 @@ class BudgetScreen extends StatelessWidget {
                     }
                   },
                   itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit_rounded, color: Color(0xFF6B7280), size: 18),
-                          SizedBox(width: 8),
-                          Text('Edit'),
-                        ],
+                    if (budget.status == 'active')
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit_rounded, color: Color(0xFF6B7280), size: 18),
+                            SizedBox(width: 8),
+                            Text('Edit'),
+                          ],
+                        ),
                       ),
-                    ),
                     const PopupMenuItem(
                       value: 'delete',
                       child: Row(
