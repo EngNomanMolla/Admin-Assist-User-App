@@ -149,7 +149,12 @@ class HomeScreen extends StatelessWidget {
         'color': const Color(0xFF7B39FD),
       },
       {
-        'title': 'Personal\nFinance Hub',
+        'title': 'To Do List\nPlanner',
+        'icon': Icons.checklist_rounded,
+        'color': const Color(0xFF3B82F6),
+      },
+      {
+        'title': 'Personal\nFinance',
         'icon': Icons.account_balance_wallet_rounded,
         'color': const Color(0xFF10B981),
       },
@@ -157,11 +162,6 @@ class HomeScreen extends StatelessWidget {
         'title': 'Budget\nPlanner',
         'icon': Icons.pie_chart_rounded,
         'color': const Color(0xFFF97316),
-      },
-      {
-        'title': 'To Do List\nPlanner',
-        'icon': Icons.checklist_rounded,
-        'color': const Color(0xFF3B82F6),
       },
       {
         'title': 'Simple\nCalculator',
@@ -197,23 +197,25 @@ class HomeScreen extends StatelessWidget {
       itemCount: items.length,
       itemBuilder: (context, index) {
         final itemColor = items[index]['color'] as Color;
+        final title = items[index]['title'] as String;
+        
         return GestureDetector(
           onTap: () {
-            if (index == 0) {
+            if (title.contains('Payment')) {
               Get.to(() => PaymentRemainderScreen());
-            } else if (index == 1) {
-              Get.to(() => const FinancePlannerScreen());
-            } else if (index == 2) {
-              Get.to(() => const BudgetScreen());
-            } else if (index == 3) {
+            } else if (title.contains('To Do')) {
               Get.to(() => const TodoListScreen());
-            } else if (index == 4) {
+            } else if (title.contains('Personal')) {
+              Get.to(() => const FinancePlannerScreen());
+            } else if (title.contains('Budget')) {
+              Get.to(() => const BudgetScreen());
+            } else if (title.contains('Calculator')) {
               Get.to(() => CalculatorScreen());
-            } else if (index == 5) {
+            } else if (title.contains('Products')) {
               Get.to(() => ProductScreen());
-            } else if (index == 6) {
+            } else if (title.contains('Job')) {
               Get.to(() => JobCircularScreen());
-            } else if (index == 7) {
+            } else if (title.contains('Mentor')) {
               Get.to(() => const MentorPostScreen());
             }
           },
@@ -243,7 +245,7 @@ class HomeScreen extends StatelessWidget {
                       ),
                       child: Icon(items[index]['icon'], size: 22, color: itemColor),
                     ),
-                    if (index == 7)
+                    if (title.contains('Mentor'))
                       Obx(() => mentorController.hasNewPosts.value
                           ? Positioned(
                               top: 2,
@@ -263,7 +265,7 @@ class HomeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  items[index]['title'],
+                  title,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 12,
