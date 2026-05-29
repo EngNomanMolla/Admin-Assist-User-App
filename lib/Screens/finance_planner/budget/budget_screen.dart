@@ -60,8 +60,8 @@ class BudgetScreen extends StatelessWidget {
         ),
         body: TabBarView(
           children: [
-            _buildBudgetList(controller, true),
-            _buildBudgetList(controller, false),
+            _buildBudgetList(context, controller, true),
+            _buildBudgetList(context, controller, false),
           ],
         ),
         floatingActionButton: FloatingActionButton(
@@ -73,40 +73,198 @@ class BudgetScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBudgetList(BudgetController controller, bool isActive) {
-    return Obx(() {
-      if (controller.isLoading.value && controller.budgets.isEmpty) {
-        return const Center(
-          child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFF97316)),
-          ),
-        );
-      }
-      final budgets = isActive ? controller.activeBudgets : controller.completedBudgets;
-      if (budgets.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.assignment_rounded, size: 48, color: Colors.grey[300]),
-              const SizedBox(height: 16),
-              Text(
-                isActive ? 'No active budgets' : 'No completed budgets',
-                style: const TextStyle(color: Color(0xFF6B7280), fontSize: 15),
+  Widget _buildBudgetList(BuildContext context, BudgetController controller, bool isActive) {
+    return Column(
+      children: [
+        _buildFilterBar(context, controller, isActive),
+        Expanded(
+          child: Obx(() {
+            final budgets = isActive ? controller.activeBudgets : controller.completedBudgets;
+            if (controller.isLoading.value && budgets.isEmpty) {
+              return const Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFF97316)),
+                ),
+              );
+            }
+            if (budgets.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.assignment_rounded, size: 48, color: Colors.grey[300]),
+                    const SizedBox(height: 16),
+                    Text(
+                      isActive ? 'No active budgets' : 'No completed budgets',
+                      style: const TextStyle(color: Color(0xFF6B7280), fontSize: 15),
+                    ),
+                  ],
+                ),
+              );
+            }
+            final isLoadingMore = isActive ? controller.isLoadingMoreActive.value : controller.isLoadingMoreHistory.value;
+            return NotificationListener<ScrollNotification>(
+              onNotification: (ScrollNotification scrollInfo) {
+                if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 200) {
+                  if (isActive) {
+                    controller.fetchActiveBudgets(isLoadMore: true);
+                  } else {
+                    controller.fetchCompletedBudgets(isLoadMore: true);
+                  }
+                }
+                return false;
+              },
+              child: ListView.builder(
+                padding: const EdgeInsets.only(left: 24, right: 24, bottom: 24, top: 8),
+                itemCount: budgets.length + (isLoadingMore ? 1 : 0),
+                itemBuilder: (context, index) {
+                  if (index == budgets.length) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16.0),
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFF97316)),
+                        ),
+                      ),
+                    );
+                  }
+                  final budget = budgets[index];
+                  return _buildBudgetCard(context, controller, budget);
+                },
               ),
-            ],
+            );
+          }),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFilterBar(BuildContext context, BudgetController controller, bool isActive) {
+    final months = [
+      {'name': 'All Months', 'value': null},
+      {'name': 'January', 'value': 1},
+      {'name': 'February', 'value': 2},
+      {'name': 'March', 'value': 3},
+      {'name': 'April', 'value': 4},
+      {'name': 'May', 'value': 5},
+      {'name': 'June', 'value': 6},
+      {'name': 'July', 'value': 7},
+      {'name': 'August', 'value': 8},
+      {'name': 'September', 'value': 9},
+      {'name': 'October', 'value': 10},
+      {'name': 'November', 'value': 11},
+      {'name': 'December', 'value': 12},
+    ];
+
+    final currentYear = DateTime.now().year;
+    final years = <Map<String, dynamic>>[
+      {'name': 'All Years', 'value': null},
+    ];
+    for (int y = currentYear - 5; y <= currentYear + 10; y++) {
+      years.add({'name': y.toString(), 'value': y});
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      margin: const EdgeInsets.fromLTRB(24, 16, 24, 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.01),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
+        ],
+      ),
+      child: Obx(() {
+        return Row(
+          children: [
+            // Month Dropdown
+            Expanded(
+              child: _buildDropdownField<int?>(
+                value: isActive ? controller.activeMonth.value : controller.historyMonth.value,
+                items: months.map((m) {
+                  return DropdownMenuItem<int?>(
+                    value: m['value'] as int?,
+                    child: Text(
+                      m['name'] as String,
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF111827), fontWeight: FontWeight.w500),
+                    ),
+                  );
+                }).toList(),
+                hint: 'Month',
+                onChanged: (val) {
+                  if (isActive) {
+                    controller.activeMonth.value = val;
+                    controller.fetchActiveBudgets();
+                  } else {
+                    controller.historyMonth.value = val;
+                    controller.fetchCompletedBudgets();
+                  }
+                },
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Year Dropdown
+            Expanded(
+              child: _buildDropdownField<int?>(
+                value: isActive ? controller.activeYear.value : controller.historyYear.value,
+                items: years.map((y) {
+                  return DropdownMenuItem<int?>(
+                    value: y['value'] as int?,
+                    child: Text(
+                      y['name'] as String,
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF111827), fontWeight: FontWeight.w500),
+                    ),
+                  );
+                }).toList(),
+                hint: 'Year',
+                onChanged: (val) {
+                  if (isActive) {
+                    controller.activeYear.value = val;
+                    controller.fetchActiveBudgets();
+                  } else {
+                    controller.historyYear.value = val;
+                    controller.fetchCompletedBudgets();
+                  }
+                },
+              ),
+            ),
+          ],
         );
-      }
-      return ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        itemCount: budgets.length,
-        itemBuilder: (context, index) {
-          final budget = budgets[index];
-          return _buildBudgetCard(context, controller, budget);
-        },
-      );
-    });
+      }),
+    );
+  }
+
+  Widget _buildDropdownField<T>({
+    required T value,
+    required List<DropdownMenuItem<T>> items,
+    required String hint,
+    required ValueChanged<T?> onChanged,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      height: 38,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F4F6),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<T>(
+          value: value,
+          isExpanded: true,
+          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF6B7280), size: 18),
+          dropdownColor: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          hint: Text(hint, style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF))),
+          items: items,
+          onChanged: onChanged,
+        ),
+      ),
+    );
   }
 
   Widget _buildBudgetCard(BuildContext context, BudgetController controller, Budget budget) {

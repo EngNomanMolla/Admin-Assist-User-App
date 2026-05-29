@@ -28,9 +28,23 @@ class ExpenseController extends GetxController {
         if (data is List) {
           list = data;
         } else if (data['expense_categories'] != null) {
-          list = data['expense_categories'];
+          if (data['expense_categories'] is Map && data['expense_categories']['data'] != null) {
+            list = data['expense_categories']['data'];
+          } else if (data['expense_categories'] is List) {
+            list = data['expense_categories'];
+          }
         } else if (data['categories'] != null) {
-          list = data['categories'];
+          if (data['categories'] is Map && data['categories']['data'] != null) {
+            list = data['categories']['data'];
+          } else if (data['categories'] is List) {
+            list = data['categories'];
+          }
+        } else if (data['data'] != null) {
+          if (data['data'] is Map && data['data']['data'] != null) {
+            list = data['data']['data'];
+          } else if (data['data'] is List) {
+            list = data['data'];
+          }
         }
 
         categories.assignAll(list.map((e) => ExpenseCategory.fromMap(e)).toList());
@@ -52,9 +66,23 @@ class ExpenseController extends GetxController {
         if (data is List) {
           list = data;
         } else if (data['expense_transactions'] != null) {
-          list = data['expense_transactions'];
+          if (data['expense_transactions'] is Map && data['expense_transactions']['data'] != null) {
+            list = data['expense_transactions']['data'];
+          } else if (data['expense_transactions'] is List) {
+            list = data['expense_transactions'];
+          }
         } else if (data['transactions'] != null) {
-          list = data['transactions'];
+          if (data['transactions'] is Map && data['transactions']['data'] != null) {
+            list = data['transactions']['data'];
+          } else if (data['transactions'] is List) {
+            list = data['transactions'];
+          }
+        } else if (data['data'] != null) {
+          if (data['data'] is Map && data['data']['data'] != null) {
+            list = data['data']['data'];
+          } else if (data['data'] is List) {
+            list = data['data'];
+          }
         }
 
         transactions.assignAll(list.map((e) => ExpenseTransaction.fromMap(e)).toList());

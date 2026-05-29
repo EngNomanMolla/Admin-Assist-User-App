@@ -8,7 +8,27 @@ import 'expense_controller.dart';
 class BudgetController extends GetxController {
   final BudgetProvider _budgetProvider = BudgetProvider();
   var budgets = <Budget>[].obs;
+  var activeBudgetsList = <Budget>[].obs;
+  var completedBudgetsList = <Budget>[].obs;
   var isLoading = false.obs;
+
+  // Active filters & pagination
+  var activeMonth = RxnInt(DateTime.now().month);
+  var activeYear = RxnInt(DateTime.now().year);
+  var activeCurrentPage = 1;
+  var activeHasMore = true.obs;
+  var isLoadingMoreActive = false.obs;
+
+  // History filters & pagination
+  var historyMonth = RxnInt(DateTime.now().month);
+  var historyYear = RxnInt(DateTime.now().year);
+  var historyStatus = 'inactive'.obs;
+  var historyCurrentPage = 1;
+  var historyHasMore = true.obs;
+  var isLoadingMoreHistory = false.obs;
+
+  bool _isActiveFetching = false;
+  bool _isHistoryFetching = false;
 
   @override
   void onInit() {
@@ -16,42 +36,138 @@ class BudgetController extends GetxController {
     fetchBudgets();
   }
 
+  Future<void> fetchActiveBudgets({bool isLoadMore = false}) async {
+    if (isLoadMore) {
+      if (isLoadingMoreActive.value || !activeHasMore.value) return;
+      isLoadingMoreActive.value = true;
+    } else {
+      if (_isActiveFetching) return;
+      _isActiveFetching = true;
+      isLoading.value = true;
+      activeCurrentPage = 1;
+      activeHasMore.value = true;
+    }
+
+    try {
+      final response = await _budgetProvider.getBudgets(
+        status: 'active',
+        month: activeMonth.value,
+        year: activeYear.value,
+        page: activeCurrentPage,
+        perPage: 20,
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        List<dynamic> list = [];
+        bool nextExists = false;
+
+        if (data['budgets'] != null) {
+          if (data['budgets'] is Map) {
+            list = data['budgets']['data'] ?? [];
+            nextExists = data['budgets']['next_page_url'] != null;
+          } else if (data['budgets'] is List) {
+            list = data['budgets'];
+          }
+        } else if (data['data'] != null) {
+          if (data['data'] is List) {
+            list = data['data'];
+          }
+        }
+
+        final newItems = list.map((e) => Budget.fromMap(e)).toList();
+        if (isLoadMore) {
+          activeBudgetsList.addAll(newItems);
+        } else {
+          activeBudgetsList.assignAll(newItems);
+        }
+
+        activeHasMore.value = nextExists;
+        if (nextExists) {
+          activeCurrentPage++;
+        }
+      }
+    } catch (e) {
+      print("Error fetching active budgets: $e");
+    } finally {
+      if (isLoadMore) {
+        isLoadingMoreActive.value = false;
+      } else {
+        _isActiveFetching = false;
+        isLoading.value = false;
+      }
+    }
+  }
+
+  Future<void> fetchCompletedBudgets({bool isLoadMore = false}) async {
+    if (isLoadMore) {
+      if (isLoadingMoreHistory.value || !historyHasMore.value) return;
+      isLoadingMoreHistory.value = true;
+    } else {
+      if (_isHistoryFetching) return;
+      _isHistoryFetching = true;
+      isLoading.value = true;
+      historyCurrentPage = 1;
+      historyHasMore.value = true;
+    }
+
+    try {
+      final response = await _budgetProvider.getBudgets(
+        status: historyStatus.value,
+        month: historyMonth.value,
+        year: historyYear.value,
+        page: historyCurrentPage,
+        perPage: 20,
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        List<dynamic> list = [];
+        bool nextExists = false;
+
+        if (data['budgets'] != null) {
+          if (data['budgets'] is Map) {
+            list = data['budgets']['data'] ?? [];
+            nextExists = data['budgets']['next_page_url'] != null;
+          } else if (data['budgets'] is List) {
+            list = data['budgets'];
+          }
+        } else if (data['data'] != null) {
+          if (data['data'] is List) {
+            list = data['data'];
+          }
+        }
+
+        final newItems = list.map((e) => Budget.fromMap(e)).toList();
+        if (isLoadMore) {
+          completedBudgetsList.addAll(newItems);
+        } else {
+          completedBudgetsList.assignAll(newItems);
+        }
+
+        historyHasMore.value = nextExists;
+        if (nextExists) {
+          historyCurrentPage++;
+        }
+      }
+    } catch (e) {
+      print("Error fetching completed budgets: $e");
+    } finally {
+      if (isLoadMore) {
+        isLoadingMoreHistory.value = false;
+      } else {
+        _isHistoryFetching = false;
+        isLoading.value = false;
+      }
+    }
+  }
+
   Future<void> fetchBudgets() async {
     try {
       isLoading.value = true;
-      final List<Budget> fetchedList = [];
-
-      // Fetch active budgets
-      final activeResponse = await _budgetProvider.getBudgets(status: 'active');
-      if (activeResponse.statusCode == 200) {
-        final data = jsonDecode(activeResponse.body);
-        List<dynamic> list = [];
-        if (data is List) {
-          list = data;
-        } else if (data['budgets'] != null) {
-          list = data['budgets'];
-        } else if (data['data'] != null) {
-          list = data['data'];
-        }
-        fetchedList.addAll(list.map((e) => Budget.fromMap(e)));
-      }
-
-      // Fetch completed/history budgets
-      final completedResponse = await _budgetProvider.getBudgets(status: 'inactive');
-      if (completedResponse.statusCode == 200) {
-        final data = jsonDecode(completedResponse.body);
-        List<dynamic> list = [];
-        if (data is List) {
-          list = data;
-        } else if (data['budgets'] != null) {
-          list = data['budgets'];
-        } else if (data['data'] != null) {
-          list = data['data'];
-        }
-        fetchedList.addAll(list.map((e) => Budget.fromMap(e)));
-      }
-
-      budgets.assignAll(fetchedList);
+      await Future.wait([
+        fetchActiveBudgets(),
+        fetchCompletedBudgets(),
+      ]);
+      budgets.assignAll([...activeBudgetsList, ...completedBudgetsList]);
     } catch (e) {
       print("Error fetching budgets: $e");
     } finally {
@@ -59,8 +175,8 @@ class BudgetController extends GetxController {
     }
   }
 
-  List<Budget> get activeBudgets => budgets.where((b) => b.status == 'active').toList();
-  List<Budget> get completedBudgets => budgets.where((b) => b.status != 'active').toList();
+  List<Budget> get activeBudgets => activeBudgetsList;
+  List<Budget> get completedBudgets => completedBudgetsList;
 
   Future<bool> addBudget({
     required String title,
@@ -94,6 +210,7 @@ class BudgetController extends GetxController {
         }
         final newBudget = Budget.fromMap(budgetMap);
         budgets.add(newBudget);
+        fetchBudgets();
         Get.snackbar("Success", "Budget created successfully",
             backgroundColor: const Color(0xFFF97316).withOpacity(0.9), colorText: Colors.white);
         return true;
@@ -149,6 +266,7 @@ class BudgetController extends GetxController {
         if (index != -1) {
           budgets[index] = updated;
         }
+        fetchBudgets();
         Get.snackbar("Success", "Budget updated successfully",
             backgroundColor: const Color(0xFFF97316).withOpacity(0.9), colorText: Colors.white);
         return true;
@@ -174,6 +292,7 @@ class BudgetController extends GetxController {
       final response = await _budgetProvider.deleteBudget(id);
       if (response.statusCode >= 200 && response.statusCode < 300) {
         budgets.removeWhere((b) => b.id == id);
+        fetchBudgets();
         Get.snackbar("Success", "Budget deleted successfully",
             backgroundColor: const Color(0xFFF97316).withOpacity(0.9), colorText: Colors.white);
         return true;
