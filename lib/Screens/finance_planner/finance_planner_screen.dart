@@ -4,7 +4,6 @@ import 'package:flutter_widgets/screens/finance_planner/income/income_screen.dar
 import 'package:flutter_widgets/screens/finance_planner/expense/expense_screen.dart';
 import 'package:flutter_widgets/screens/finance_planner/debt/debt_screen.dart';
 import 'package:flutter_widgets/screens/finance_planner/wealth/wealth_screen.dart';
-import 'package:flutter_widgets/screens/finance_planner/budget/budget_screen.dart';
 import 'package:flutter_widgets/controller/income_controller.dart';
 import 'package:flutter_widgets/controller/expense_controller.dart';
 import 'package:flutter_widgets/controller/debt_controller.dart';
@@ -51,6 +50,7 @@ class FinancePlannerScreen extends StatelessWidget {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           child: Padding(
             padding: const EdgeInsets.all(24.0),
             child: Column(
@@ -95,7 +95,8 @@ class FinancePlannerScreen extends StatelessWidget {
 
                 // Summary Section 2: Liability, Asset
                 Obx(() {
-                  final totalDebt = debtController.totalDebt;
+                  final netIncome = incomeController.totalIncome - expenseController.totalExpense;
+                  final totalLiability = debtController.totalDebt + netIncome;
                   final totalWealth = wealthController.totalWealth;
 
                   return Container(
@@ -108,8 +109,44 @@ class FinancePlannerScreen extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildSummaryItem('Total Liability', totalDebt, const Color(0xFFF59E0B)),
+                        _buildSummaryItem('Total Liability', totalLiability, const Color(0xFFF59E0B)),
                         _buildSummaryItem('Total Asset', totalWealth, const Color(0xFF7B39FD)),
+                      ],
+                    ),
+                  );
+                }),
+                const SizedBox(height: 12),
+
+                // Summary Section 3: Cash & Bank Balance
+                Obx(() {
+                  final bankBalance = incomeController.bankBalance.value != 0.0
+                      ? incomeController.bankBalance.value
+                      : wealthController.bankBalance.value;
+
+                  return Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE5E7EB)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Cash & Bank Balance',
+                          style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '৳${bankBalance.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF10B981),
+                          ),
+                        ),
                       ],
                     ),
                   );

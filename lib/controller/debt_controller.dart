@@ -10,6 +10,11 @@ class DebtController extends GetxController {
   var transactions = <DebtTransaction>[].obs;
   var selectedCategoryId = 'all'.obs;
   final RxBool isLoading = false.obs;
+  int currentPage = 1;
+  final RxBool hasMore = true.obs;
+  final RxBool isLoadingMore = false.obs;
+  final RxDouble serverTotalDebt = 0.0.obs;
+  bool _isTransactionsFetching = false;
 
   @override
   void onInit() {
@@ -33,7 +38,14 @@ class DebtController extends GetxController {
           list = data['categories'];
         }
 
-        categories.assignAll(list.map((e) => DebtCategory.fromMap(e)).toList());
+        final fetchedCategories = list.map((e) {
+          if (e is Map) {
+            return DebtCategory.fromMap(Map<String, dynamic>.from(e));
+          }
+          return DebtCategory(id: '', name: '');
+        }).where((cat) => cat.id.isNotEmpty).toList();
+
+        categories.assignAll(fetchedCategories);
       }
     } catch (e) {
       print("Error fetching liability categories: $e");
@@ -42,27 +54,78 @@ class DebtController extends GetxController {
     }
   }
 
-  Future<void> fetchTransactions() async {
-    try {
+  Future<void> fetchTransactions({bool isLoadMore = false}) async {
+    if (isLoadMore) {
+      if (isLoadingMore.value || !hasMore.value) return;
+      isLoadingMore.value = true;
+    } else {
+      if (_isTransactionsFetching) return;
+      _isTransactionsFetching = true;
       isLoading.value = true;
-      final response = await _liabilityProvider.getLiabilityTransactions();
+      currentPage = 1;
+      hasMore.value = true;
+    }
+
+    try {
+      final response = await _liabilityProvider.getLiabilityTransactions(
+        page: currentPage,
+        perPage: 15,
+      );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        if (data is Map && data['summary'] != null && data['summary']['liability'] != null) {
+          serverTotalDebt.value = double.tryParse(data['summary']['liability'].toString()) ?? 0.0;
+        }
         List<dynamic> list = [];
-        if (data is List) {
+        bool nextExists = false;
+
+        if (data is Map && data['liability_transactions'] != null) {
+          final ltData = data['liability_transactions'];
+          if (ltData is Map) {
+            list = ltData['data'] ?? [];
+            nextExists = ltData['next_page_url'] != null;
+          } else if (ltData is List) {
+            list = ltData;
+          }
+        } else if (data is Map && data['data'] != null) {
+          final dData = data['data'];
+          if (dData is Map) {
+            list = dData['data'] ?? [];
+            nextExists = dData['next_page_url'] != null;
+          } else if (dData is List) {
+            list = dData;
+          }
+        } else if (data is List) {
           list = data;
-        } else if (data['liability_transactions'] != null) {
-          list = data['liability_transactions'];
-        } else if (data['transactions'] != null) {
-          list = data['transactions'];
         }
 
-        transactions.assignAll(list.map((e) => DebtTransaction.fromMap(e)).toList());
+        final newItems = list.map((e) {
+          if (e is Map) {
+            return DebtTransaction.fromMap(Map<String, dynamic>.from(e));
+          }
+          return DebtTransaction(id: '', title: '', amount: 0.0, categoryId: '', date: DateTime.now());
+        }).where((tx) => tx.id.isNotEmpty).toList();
+
+        if (isLoadMore) {
+          transactions.addAll(newItems);
+        } else {
+          transactions.assignAll(newItems);
+        }
+
+        hasMore.value = nextExists;
+        if (nextExists) {
+          currentPage++;
+        }
       }
     } catch (e) {
       print("Error fetching liability transactions: $e");
     } finally {
-      isLoading.value = false;
+      if (isLoadMore) {
+        isLoadingMore.value = false;
+      } else {
+        _isTransactionsFetching = false;
+        isLoading.value = false;
+      }
     }
   }
 
@@ -181,27 +244,7 @@ class DebtController extends GetxController {
         'date': DateTime.now().toIso8601String(),
       });
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        final data = jsonDecode(response.body);
-        String txId = '';
-        if (data != null) {
-          if (data['id'] != null) {
-            txId = data['id'].toString();
-          } else if (data['liability_transaction'] != null && data['liability_transaction']['id'] != null) {
-            txId = data['liability_transaction']['id'].toString();
-          } else if (data['transaction'] != null && data['transaction']['id'] != null) {
-            txId = data['transaction']['id'].toString();
-          }
-        }
-        if (txId.isEmpty) {
-          txId = DateTime.now().millisecondsSinceEpoch.toString();
-        }
-        transactions.add(DebtTransaction(
-          id: txId,
-          title: title,
-          amount: amount,
-          categoryId: categoryId,
-          date: DateTime.now(),
-        ));
+        await fetchTransactions();
         Get.snackbar("Success", "Transaction added successfully",
             backgroundColor: const Color(0xFFF59E0B).withOpacity(0.9), colorText: Colors.white);
         return true;
@@ -230,17 +273,7 @@ class DebtController extends GetxController {
         'liability_category_id': categoryId,
       });
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        final index = transactions.indexWhere((t) => t.id == id);
-        if (index != -1) {
-          transactions[index] = DebtTransaction(
-            id: id,
-            title: title,
-            amount: amount,
-            categoryId: categoryId,
-            date: transactions[index].date,
-            payments: transactions[index].payments,
-          );
-        }
+        await fetchTransactions();
         Get.snackbar("Success", "Transaction updated successfully",
             backgroundColor: const Color(0xFFF59E0B).withOpacity(0.9), colorText: Colors.white);
         return true;
@@ -272,33 +305,7 @@ class DebtController extends GetxController {
         'status': 'paid',
       });
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        final data = jsonDecode(response.body);
-        final index = transactions.indexWhere((t) => t.id == transactionId);
-        if (index != -1) {
-          final transaction = transactions[index];
-          String paymentId = '';
-          if (data != null) {
-            if (data['id'] != null) {
-              paymentId = data['id'].toString();
-            } else if (data['payment'] != null && data['payment']['id'] != null) {
-              paymentId = data['payment']['id'].toString();
-            }
-          }
-          if (paymentId.isEmpty) {
-            paymentId = DateTime.now().millisecondsSinceEpoch.toString();
-          }
-          final newPayment = DebtPayment(id: paymentId, amount: amount, date: now);
-          final updatedPayments = List<DebtPayment>.from(transaction.payments)..add(newPayment);
-          
-          transactions[index] = DebtTransaction(
-            id: transaction.id,
-            title: transaction.title,
-            amount: transaction.amount,
-            categoryId: transaction.categoryId,
-            date: transaction.date,
-            payments: updatedPayments,
-          );
-        }
+        await fetchTransactions();
         Get.snackbar("Success", "Liability paid successfully",
             backgroundColor: const Color(0xFFF59E0B).withOpacity(0.9), colorText: Colors.white);
         return true;
@@ -358,7 +365,7 @@ class DebtController extends GetxController {
       isLoading.value = true;
       final response = await _liabilityProvider.deleteLiabilityTransaction(id);
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        transactions.removeWhere((t) => t.id == id);
+        await fetchTransactions();
         Get.snackbar("Success", "Transaction deleted successfully",
             backgroundColor: const Color(0xFFF59E0B).withOpacity(0.9), colorText: Colors.white);
         return true;
@@ -386,6 +393,9 @@ class DebtController extends GetxController {
   }
 
   double get totalDebt {
+    if (selectedCategoryId.value == 'all') {
+      return serverTotalDebt.value;
+    }
     return filteredTransactions.fold(0.0, (sum, item) => sum + item.remainingAmount);
   }
 

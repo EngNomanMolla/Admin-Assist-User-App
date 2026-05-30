@@ -13,13 +13,20 @@ class ExpenseProvider extends ApiProvider {
   Future<http.Response> deleteExpenseCategory(String id) =>
       postRequest('/expense_categories/$id', {'_method': 'DELETE'});
 
-  Future<http.Response> getExpenseTransactions() => getRequest('/expense_transactions');
+  Future<http.Response> getExpenseTransactions({int? page, int? perPage}) {
+    final Map<String, String> queryParams = {};
+    if (page != null) queryParams['page'] = page.toString();
+    if (perPage != null) queryParams['per_page'] = perPage.toString();
+
+    final queryString = Uri(queryParameters: queryParams).query;
+    return getRequest('/expense_transactions${queryString.isNotEmpty ? '?$queryString' : ''}');
+  }
 
   Future<http.Response> createExpenseTransaction(Map<String, dynamic> data) =>
       postRequest('/expense_transactions', data);
 
   Future<http.Response> updateExpenseTransaction(String id, Map<String, dynamic> data) =>
-      postRequest('/expense_transactions/$id', {...data, '_method': 'PUT'});
+      putRequest('/expense_transactions/$id', data);
 
   Future<http.Response> deleteExpenseTransaction(String id) =>
       postRequest('/expense_transactions/$id', {'_method': 'DELETE'});

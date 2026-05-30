@@ -13,13 +13,20 @@ class LiabilityProvider extends ApiProvider {
   Future<http.Response> deleteLiabilityCategory(String id) =>
       postRequest('/liability_categories/$id', {'_method': 'DELETE'});
 
-  Future<http.Response> getLiabilityTransactions() => getRequest('/liability_transactions');
+  Future<http.Response> getLiabilityTransactions({int? page, int? perPage}) {
+    final Map<String, String> queryParams = {};
+    if (page != null) queryParams['page'] = page.toString();
+    if (perPage != null) queryParams['per_page'] = perPage.toString();
+
+    final queryString = Uri(queryParameters: queryParams).query;
+    return getRequest('/liability_transactions${queryString.isNotEmpty ? '?$queryString' : ''}');
+  }
 
   Future<http.Response> createLiabilityTransaction(Map<String, dynamic> data) =>
       postRequest('/liability_transactions', data);
 
   Future<http.Response> updateLiabilityTransaction(String id, Map<String, dynamic> data) =>
-      postRequest('/liability_transactions/$id', {...data, '_method': 'PUT'});
+      putRequest('/liability_transactions/$id', data);
 
   Future<http.Response> deleteLiabilityTransaction(String id) =>
       postRequest('/liability_transactions/$id', {'_method': 'DELETE'});

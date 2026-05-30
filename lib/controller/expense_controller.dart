@@ -10,6 +10,11 @@ class ExpenseController extends GetxController {
   var transactions = <ExpenseTransaction>[].obs;
   var selectedCategoryId = 'all'.obs;
   final RxBool isLoading = false.obs;
+  int currentPage = 1;
+  final RxBool hasMore = true.obs;
+  final RxBool isLoadingMore = false.obs;
+  final RxDouble serverTotalExpense = 0.0.obs;
+  bool _isTransactionsFetching = false;
 
   @override
   void onInit() {
@@ -47,7 +52,14 @@ class ExpenseController extends GetxController {
           }
         }
 
-        categories.assignAll(list.map((e) => ExpenseCategory.fromMap(e)).toList());
+        final fetchedCategories = list.map((e) {
+          if (e is Map) {
+            return ExpenseCategory.fromMap(Map<String, dynamic>.from(e));
+          }
+          return ExpenseCategory(id: '', name: '');
+        }).where((cat) => cat.id.isNotEmpty).toList();
+
+        categories.assignAll(fetchedCategories);
       }
     } catch (e) {
       print("Error fetching expense categories: $e");
@@ -56,41 +68,78 @@ class ExpenseController extends GetxController {
     }
   }
 
-  Future<void> fetchTransactions() async {
-    try {
+  Future<void> fetchTransactions({bool isLoadMore = false}) async {
+    if (isLoadMore) {
+      if (isLoadingMore.value || !hasMore.value) return;
+      isLoadingMore.value = true;
+    } else {
+      if (_isTransactionsFetching) return;
+      _isTransactionsFetching = true;
       isLoading.value = true;
-      final response = await _expenseProvider.getExpenseTransactions();
+      currentPage = 1;
+      hasMore.value = true;
+    }
+
+    try {
+      final response = await _expenseProvider.getExpenseTransactions(
+        page: currentPage,
+        perPage: 15,
+      );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        if (data is Map && data['total_expense'] != null) {
+          serverTotalExpense.value = double.tryParse(data['total_expense'].toString()) ?? 0.0;
+        }
         List<dynamic> list = [];
-        if (data is List) {
+        bool nextExists = false;
+
+        if (data is Map && data['expense_transactions'] != null) {
+          final etData = data['expense_transactions'];
+          if (etData is Map) {
+            list = etData['data'] ?? [];
+            nextExists = etData['next_page_url'] != null;
+          } else if (etData is List) {
+            list = etData;
+          }
+        } else if (data is Map && data['data'] != null) {
+          final dData = data['data'];
+          if (dData is Map) {
+            list = dData['data'] ?? [];
+            nextExists = dData['next_page_url'] != null;
+          } else if (dData is List) {
+            list = dData;
+          }
+        } else if (data is List) {
           list = data;
-        } else if (data['expense_transactions'] != null) {
-          if (data['expense_transactions'] is Map && data['expense_transactions']['data'] != null) {
-            list = data['expense_transactions']['data'];
-          } else if (data['expense_transactions'] is List) {
-            list = data['expense_transactions'];
-          }
-        } else if (data['transactions'] != null) {
-          if (data['transactions'] is Map && data['transactions']['data'] != null) {
-            list = data['transactions']['data'];
-          } else if (data['transactions'] is List) {
-            list = data['transactions'];
-          }
-        } else if (data['data'] != null) {
-          if (data['data'] is Map && data['data']['data'] != null) {
-            list = data['data']['data'];
-          } else if (data['data'] is List) {
-            list = data['data'];
-          }
         }
 
-        transactions.assignAll(list.map((e) => ExpenseTransaction.fromMap(e)).toList());
+        final newItems = list.map((e) {
+          if (e is Map) {
+            return ExpenseTransaction.fromMap(Map<String, dynamic>.from(e));
+          }
+          return ExpenseTransaction(id: '', title: '', amount: 0.0, categoryId: '', date: DateTime.now());
+        }).where((tx) => tx.id.isNotEmpty).toList();
+
+        if (isLoadMore) {
+          transactions.addAll(newItems);
+        } else {
+          transactions.assignAll(newItems);
+        }
+
+        hasMore.value = nextExists;
+        if (nextExists) {
+          currentPage++;
+        }
       }
     } catch (e) {
       print("Error fetching expense transactions: $e");
     } finally {
-      isLoading.value = false;
+      if (isLoadMore) {
+        isLoadingMore.value = false;
+      } else {
+        _isTransactionsFetching = false;
+        isLoading.value = false;
+      }
     }
   }
 
@@ -208,27 +257,7 @@ class ExpenseController extends GetxController {
         'date': DateTime.now().toIso8601String(),
       });
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        final data = jsonDecode(response.body);
-        String transactionId = '';
-        if (data != null) {
-          if (data['id'] != null) {
-            transactionId = data['id'].toString();
-          } else if (data['expense_transaction'] != null && data['expense_transaction']['id'] != null) {
-            transactionId = data['expense_transaction']['id'].toString();
-          } else if (data['transaction'] != null && data['transaction']['id'] != null) {
-            transactionId = data['transaction']['id'].toString();
-          }
-        }
-        if (transactionId.isEmpty) {
-          transactionId = DateTime.now().millisecondsSinceEpoch.toString();
-        }
-        transactions.add(ExpenseTransaction(
-          id: transactionId,
-          title: title,
-          amount: amount,
-          categoryId: categoryId,
-          date: DateTime.now(),
-        ));
+        await fetchTransactions();
         Get.snackbar("Success", "Transaction added successfully",
             backgroundColor: const Color(0xFFEF4444).withOpacity(0.9), colorText: Colors.white);
         return true;
@@ -257,16 +286,7 @@ class ExpenseController extends GetxController {
         'expense_category_id': categoryId,
       });
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        final index = transactions.indexWhere((t) => t.id == id);
-        if (index != -1) {
-          transactions[index] = ExpenseTransaction(
-            id: id,
-            title: title,
-            amount: amount,
-            categoryId: categoryId,
-            date: transactions[index].date,
-          );
-        }
+        await fetchTransactions();
         Get.snackbar("Success", "Transaction updated successfully",
             backgroundColor: const Color(0xFFEF4444).withOpacity(0.9), colorText: Colors.white);
         return true;
@@ -291,7 +311,7 @@ class ExpenseController extends GetxController {
       isLoading.value = true;
       final response = await _expenseProvider.deleteExpenseTransaction(id);
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        transactions.removeWhere((t) => t.id == id);
+        await fetchTransactions();
         Get.snackbar("Success", "Transaction deleted successfully",
             backgroundColor: const Color(0xFFEF4444).withOpacity(0.9), colorText: Colors.white);
         return true;
@@ -319,6 +339,9 @@ class ExpenseController extends GetxController {
   }
 
   double get totalExpense {
+    if (selectedCategoryId.value == 'all') {
+      return serverTotalExpense.value;
+    }
     return filteredTransactions.fold(0.0, (sum, item) => sum + item.amount);
   }
 

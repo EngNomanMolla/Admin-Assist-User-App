@@ -293,122 +293,140 @@ class DebtScreen extends StatelessWidget {
           ),
         );
       }
-      return ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        itemCount: transactions.length,
-        itemBuilder: (context, index) {
-          final transaction = transactions[index];
-          final categoryName = controller.getCategoryName(transaction.categoryId);
-          return GestureDetector(
-            onTap: () {
-              Get.to(() => DebtPaymentHistoryScreen(transaction: transaction));
-            },
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.only(left: 12, top: 10, bottom: 10, right: 4),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE5E7EB)),
-              ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF59E0B).withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.arrow_upward_rounded, color: Color(0xFFF59E0B), size: 16),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        transaction.title,
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF111827)),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        categoryName,
-                        style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '৳${transaction.remainingAmount.toStringAsFixed(2)}',
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFFF59E0B)),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      DateFormat('MMM dd').format(transaction.date),
-                      style: const TextStyle(fontSize: 10, color: Color(0xFF9CA3AF)),
-                    ),
-                  ],
-                ),
-                PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert, color: Color(0xFF6B7280), size: 20),
-                  padding: EdgeInsets.zero,
-                  onSelected: (val) {
-                    if (val == 'edit') {
-                      _showUpdateTransactionDialog(context, controller, transaction);
-                    } else if (val == 'delete') {
-                      _showDeleteConfirmation(context, controller, transaction.id);
-                    } else if (val == 'pay') {
-                      _showPayDebtDialog(context, controller, transaction);
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'pay',
-                      child: Row(
-                        children: [
-                          Icon(Icons.payment_rounded, color: Color(0xFF10B981), size: 18),
-                          SizedBox(width: 8),
-                          Text('Pay Liability'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit_rounded, color: Color(0xFF6B7280), size: 18),
-                          SizedBox(width: 8),
-                          Text('Edit'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete_rounded, color: Colors.red, size: 18),
-                          SizedBox(width: 8),
-                          Text('Delete', style: TextStyle(color: Colors.red)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
+      return NotificationListener<ScrollNotification>(
+        onNotification: (ScrollNotification scrollInfo) {
+          if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 200) {
+            controller.fetchTransactions(isLoadMore: true);
+          }
+          return false;
         },
+        child: ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          itemCount: transactions.length + (controller.isLoadingMore.value ? 1 : 0),
+          itemBuilder: (context, index) {
+            if (index == transactions.length) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color: Color(0xFFF59E0B),
+                  ),
+                ),
+              );
+            }
+            final transaction = transactions[index];
+            final categoryName = controller.getCategoryName(transaction.categoryId);
+            return GestureDetector(
+              onTap: () {
+                Get.to(() => DebtPaymentHistoryScreen(transaction: transaction));
+              },
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.only(left: 12, top: 10, bottom: 10, right: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF59E0B).withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.arrow_upward_rounded, color: Color(0xFFF59E0B), size: 16),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            transaction.title,
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF111827)),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            categoryName,
+                            style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '৳${transaction.remainingAmount.toStringAsFixed(2)}',
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFFF59E0B)),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          DateFormat('MMM dd').format(transaction.date),
+                          style: const TextStyle(fontSize: 10, color: Color(0xFF9CA3AF)),
+                        ),
+                      ],
+                    ),
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert, color: Color(0xFF6B7280), size: 20),
+                      padding: EdgeInsets.zero,
+                      onSelected: (val) {
+                        if (val == 'edit') {
+                          _showUpdateTransactionDialog(context, controller, transaction);
+                        } else if (val == 'delete') {
+                          _showDeleteConfirmation(context, controller, transaction.id);
+                        } else if (val == 'pay') {
+                          _showPayDebtDialog(context, controller, transaction);
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'pay',
+                          child: Row(
+                            children: [
+                              Icon(Icons.payment_rounded, color: Color(0xFF10B981), size: 18),
+                              SizedBox(width: 8),
+                              Text('Pay Liability'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit_rounded, color: Color(0xFF6B7280), size: 18),
+                              SizedBox(width: 8),
+                              Text('Edit'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete_rounded, color: Colors.red, size: 18),
+                              SizedBox(width: 8),
+                              Text('Delete', style: TextStyle(color: Colors.red)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
       );
     });
   }

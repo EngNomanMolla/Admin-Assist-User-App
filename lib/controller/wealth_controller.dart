@@ -11,6 +11,7 @@ class WealthController extends GetxController {
   var transactions = <WealthTransaction>[].obs;
   var selectedCategoryId = 'all'.obs;
   var isLoading = false.obs;
+  final RxDouble bankBalance = 0.0.obs;
 
   @override
   void onInit() {
@@ -51,6 +52,9 @@ class WealthController extends GetxController {
       final response = await _wealthProvider.getAssetTransactions();
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        if (data is Map && data['bank_balance'] != null) {
+          bankBalance.value = double.tryParse(data['bank_balance'].toString()) ?? 0.0;
+        }
         List<dynamic> list = [];
         if (data is List) {
           list = data;

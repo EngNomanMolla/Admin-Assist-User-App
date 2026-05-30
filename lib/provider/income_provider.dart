@@ -13,13 +13,20 @@ class IncomeProvider extends ApiProvider {
   Future<http.Response> deleteIncomeCategory(String id) =>
       postRequest('/income_categories/$id', {'_method': 'DELETE'});
 
-  Future<http.Response> getIncomeTransactions() => getRequest('/income_transactions');
+  Future<http.Response> getIncomeTransactions({int? page, int? perPage}) {
+    final Map<String, String> queryParams = {};
+    if (page != null) queryParams['page'] = page.toString();
+    if (perPage != null) queryParams['per_page'] = perPage.toString();
+
+    final queryString = Uri(queryParameters: queryParams).query;
+    return getRequest('/income_transactions${queryString.isNotEmpty ? '?$queryString' : ''}');
+  }
 
   Future<http.Response> createIncomeTransaction(Map<String, dynamic> data) =>
       postRequest('/income_transactions', data);
 
   Future<http.Response> updateIncomeTransaction(String id, Map<String, dynamic> data) =>
-      postRequest('/income_transactions/$id', {...data, '_method': 'PUT'});
+      putRequest('/income_transactions/$id', data);
 
   Future<http.Response> deleteIncomeTransaction(String id) =>
       postRequest('/income_transactions/$id', {'_method': 'DELETE'});

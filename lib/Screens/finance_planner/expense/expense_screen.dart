@@ -230,6 +230,11 @@ class ExpenseScreen extends StatelessWidget {
     return Obx(() {
       final transactions = controller.filteredTransactions;
       if (transactions.isEmpty) {
+        if (controller.isLoading.value) {
+          return const Center(
+            child: CircularProgressIndicator(color: Color(0xFFEF4444)),
+          );
+        }
         return Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -244,105 +249,127 @@ class ExpenseScreen extends StatelessWidget {
           ),
         );
       }
-      return ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        itemCount: transactions.length,
-        itemBuilder: (context, index) {
-          final transaction = transactions[index];
-          final categoryName = controller.getCategoryName(transaction.categoryId);
-          return Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.only(left: 12, top: 10, bottom: 10, right: 4),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE5E7EB)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEF4444).withOpacity(0.1),
-                    shape: BoxShape.circle,
+      return NotificationListener<ScrollNotification>(
+        onNotification: (ScrollNotification scrollInfo) {
+          if (!controller.isLoading.value &&
+              !controller.isLoadingMore.value &&
+              controller.hasMore.value &&
+              scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 200) {
+            controller.fetchTransactions(isLoadMore: true);
+          }
+          return false;
+        },
+        child: ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          itemCount: transactions.length + (controller.hasMore.value ? 1 : 0),
+          itemBuilder: (context, index) {
+            if (index == transactions.length) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color: Color(0xFFEF4444),
+                    strokeWidth: 2,
                   ),
-                  child: const Icon(Icons.arrow_upward_rounded, color: Color(0xFFEF4444), size: 16),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              );
+            }
+            final transaction = transactions[index];
+            final categoryName = controller.getCategoryName(transaction.categoryId);
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.only(left: 12, top: 10, bottom: 10, right: 4),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEF4444).withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.arrow_upward_rounded, color: Color(0xFFEF4444), size: 16),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          transaction.title,
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF111827)),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          categoryName,
+                          style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        transaction.title,
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF111827)),
+                        '-৳${transaction.amount.toStringAsFixed(2)}',
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFFEF4444)),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        categoryName,
-                        style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        DateFormat('MMM dd').format(transaction.date),
+                        style: const TextStyle(fontSize: 10, color: Color(0xFF9CA3AF)),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(width: 8),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '-৳${transaction.amount.toStringAsFixed(2)}',
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFFEF4444)),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      DateFormat('MMM dd').format(transaction.date),
-                      style: const TextStyle(fontSize: 10, color: Color(0xFF9CA3AF)),
-                    ),
-                  ],
-                ),
-                PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert, color: Color(0xFF6B7280), size: 20),
-                  padding: EdgeInsets.zero,
-                  onSelected: (val) {
-                    if (val == 'edit') {
-                      _showUpdateTransactionDialog(context, controller, transaction);
-                    } else if (val == 'delete') {
-                      _showDeleteConfirmation(context, controller, transaction.id);
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit_rounded, color: Color(0xFF6B7280), size: 18),
-                          SizedBox(width: 8),
-                          Text('Edit'),
-                        ],
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert, color: Color(0xFF6B7280), size: 20),
+                    padding: EdgeInsets.zero,
+                    onSelected: (val) {
+                      if (val == 'edit') {
+                        _showUpdateTransactionDialog(context, controller, transaction);
+                      } else if (val == 'delete') {
+                        _showDeleteConfirmation(context, controller, transaction.id);
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit_rounded, color: Color(0xFF6B7280), size: 18),
+                            SizedBox(width: 8),
+                            Text('Edit'),
+                          ],
+                        ),
                       ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete_rounded, color: Colors.red, size: 18),
-                          SizedBox(width: 8),
-                          Text('Delete', style: TextStyle(color: Colors.red)),
-                        ],
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete_rounded, color: Colors.red, size: 18),
+                            SizedBox(width: 8),
+                            Text('Delete', style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          );
-        },
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       );
     });
   }

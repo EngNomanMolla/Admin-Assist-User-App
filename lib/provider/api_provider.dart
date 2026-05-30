@@ -107,4 +107,19 @@ class ApiProvider {
       rethrow;
     }
   }
+
+  Future<http.Response> putRequest(String endpoint, Map<String, dynamic> body) async {
+    final url = Uri.parse('$baseUrl$endpoint');
+    try {
+      final response = await http.put(
+        url,
+        headers: _headers,
+        body: jsonEncode(body),
+      );
+      return response;
+    } catch (e) {
+      print('API Put Error: $e');
+      rethrow;
+    }
+  }
 }
