@@ -22,7 +22,7 @@ class BudgetController extends GetxController {
   // History filters & pagination
   var historyMonth = RxnInt(DateTime.now().month);
   var historyYear = RxnInt(DateTime.now().year);
-  var historyStatus = 'inactive'.obs;
+  var historyStatus = 'expired'.obs;
   var historyCurrentPage = 1;
   var historyHasMore = true.obs;
   var isLoadingMoreHistory = false.obs;
