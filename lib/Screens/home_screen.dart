@@ -27,40 +27,64 @@ class HomeScreen extends StatelessWidget {
       backgroundColor: const Color(0xFFF9FAFB),
       body: SafeArea(
         bottom: false,
-        child: RefreshIndicator(
-          onRefresh: () => controller.fetchDashboardData(),
-          color: const Color(0xFF7B39FD),
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 110),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildTopBar(),
-                const SizedBox(height: 12),
-                Obx(() => _buildLiveBox(controller)),
-                const SizedBox(height: 20),
-                Obx(() => ImageSliderCustom(banners: controller.banners.value, isLoading: controller.isLoading.value)),
-                const SizedBox(height: 24),
-                _buildSectionHeader('Quick Access'),
-                const SizedBox(height: 16),
-                _buildGridView(context),
-              ],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+              child: _buildTopBar(),
             ),
-          ),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () => controller.fetchDashboardData(),
+                color: const Color(0xFF7B39FD),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 110),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Obx(() => _buildLiveBox(controller)),
+                      const SizedBox(height: 20),
+                      Obx(() => ImageSliderCustom(banners: controller.banners.value, isLoading: controller.isLoading.value)),
+                      const SizedBox(height: 24),
+                      _buildSectionHeader('Quick Access'),
+                      const SizedBox(height: 16),
+                      _buildGridView(context),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
   Widget _buildTopBar() {
-    return const Text(
-      'Mentor Assist',
-      style: TextStyle(
-        fontSize: 26,
-        fontWeight: FontWeight.w800,
-        color: Color(0xFF111827),
-        letterSpacing: -0.5,
+    return RichText(
+      text: const TextSpan(
+        style: TextStyle(
+          fontSize: 26,
+          letterSpacing: -0.5,
+        ),
+        children: [
+          TextSpan(
+            text: 'Mentor ',
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF111827),
+            ),
+          ),
+          TextSpan(
+            text: 'Assist',
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF7B39FD),
+            ),
+          ),
+        ],
       ),
     );
   }
