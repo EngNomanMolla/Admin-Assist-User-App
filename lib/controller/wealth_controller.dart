@@ -12,66 +12,118 @@ class WealthController extends GetxController {
   var selectedCategoryId = 'all'.obs;
   var isLoading = false.obs;
   final RxDouble bankBalance = 0.0.obs;
+  final RxDouble otherAssets = 0.0.obs;
+  final RxDouble totalAssets = 0.0.obs;
+  int currentPage = 1;
+  final RxBool hasMore = true.obs;
+  final RxBool isLoadingMore = false.obs;
+  bool _isTransactionsFetching = false;
 
   @override
   void onInit() {
     super.onInit();
-    fetchCategories();
-    fetchTransactions();
+    fetchAssetTrackerData();
+  }
+
+  Future<void> fetchAssetTrackerData() async {
+    await fetchCategories();
+    await fetchTransactions(isLoadMore: false);
   }
 
   Future<void> fetchCategories() async {
     try {
-      isLoading.value = true;
-      final response = await _wealthProvider.getAssetCategories();
+      final response = await _wealthProvider.getAssetTrackerData();
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        List<dynamic> list = [];
-        if (data is List) {
-          list = data;
-        } else if (data['asset_categories'] != null) {
-          list = data['asset_categories'];
-        } else if (data['data'] != null) {
-          list = data['data'];
-        } else if (data['categories'] != null) {
-          list = data['categories'];
+        List<dynamic> catList = [];
+        if (data['categories'] != null) {
+          catList = data['categories'];
         }
-        final fetchedCategories = list.map((e) => WealthCategory.fromMap(e)).toList();
+        final fetchedCategories = catList.map((e) {
+          if (e is Map) {
+            return WealthCategory.fromMap(Map<String, dynamic>.from(e));
+          }
+          return WealthCategory(id: '', name: '');
+        }).where((cat) => cat.id.isNotEmpty).toList();
         categories.assignAll(fetchedCategories);
       }
     } catch (e) {
-      print("Error fetching asset categories: $e");
-    } finally {
-      isLoading.value = false;
+      print("Error fetching categories: $e");
     }
   }
 
-  Future<void> fetchTransactions() async {
-    try {
+  Future<void> fetchTransactions({bool isLoadMore = false}) async {
+    if (isLoadMore) {
+      if (isLoadingMore.value || !hasMore.value) return;
+      isLoadingMore.value = true;
+    } else {
+      if (_isTransactionsFetching) return;
+      _isTransactionsFetching = true;
       isLoading.value = true;
-      final response = await _wealthProvider.getAssetTransactions();
+      currentPage = 1;
+      hasMore.value = true;
+    }
+
+    try {
+      final response = await _wealthProvider.getAssetTransactions(
+        page: currentPage,
+        perPage: 15,
+      );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        if (data is Map && data['bank_balance'] != null) {
-          bankBalance.value = double.tryParse(data['bank_balance'].toString()) ?? 0.0;
+        
+        // Parse summary
+        if (data is Map && data['summary'] != null) {
+          bankBalance.value = double.tryParse(data['summary']['bank_balance']?.toString() ?? '0') ?? 0.0;
+          otherAssets.value = double.tryParse(data['summary']['other_assets']?.toString() ?? '0') ?? 0.0;
+          totalAssets.value = double.tryParse(data['summary']['total_assets']?.toString() ?? '0') ?? 0.0;
         }
+
         List<dynamic> list = [];
-        if (data is List) {
-          list = data;
-        } else if (data['asset_transactions'] != null) {
-          list = data['asset_transactions'];
-        } else if (data['data'] != null) {
-          list = data['data'];
-        } else if (data['transactions'] != null) {
-          list = data['transactions'];
+        bool nextExists = false;
+
+        if (data is Map && data['asset_transactions'] != null) {
+          final txData = data['asset_transactions'];
+          if (txData is Map) {
+            list = txData['data'] ?? [];
+            nextExists = txData['next_page_url'] != null;
+          } else if (txData is List) {
+            list = txData;
+          }
+        } else if (data is Map && data['transactions'] != null) {
+          final txData = data['transactions'];
+          if (txData is Map) {
+            list = txData['data'] ?? [];
+            nextExists = txData['next_page_url'] != null;
+          } else if (txData is List) {
+            list = txData;
+          }
         }
-        final fetchedTransactions = list.map((e) => WealthTransaction.fromMap(e)).toList();
-        transactions.assignAll(fetchedTransactions);
+
+        final fetchedTransactions = list.map((e) {
+          if (e is Map) {
+            return WealthTransaction.fromMap(Map<String, dynamic>.from(e));
+          }
+          return WealthTransaction(id: '', title: '', amount: 0.0, totalInvested: 0.0, categoryId: '', categoryName: '', date: DateTime.now());
+        }).where((tx) => tx.id.isNotEmpty).toList();
+
+        if (isLoadMore) {
+          transactions.addAll(fetchedTransactions);
+          if (fetchedTransactions.isNotEmpty) {
+            currentPage++;
+          }
+        } else {
+          transactions.assignAll(fetchedTransactions);
+          currentPage = 2;
+        }
+        hasMore.value = nextExists;
       }
     } catch (e) {
       print("Error fetching asset transactions: $e");
     } finally {
       isLoading.value = false;
+      isLoadingMore.value = false;
+      _isTransactionsFetching = false;
     }
   }
 
@@ -128,7 +180,9 @@ class WealthController extends GetxController {
               id: transactions[i].id,
               title: transactions[i].title,
               amount: transactions[i].amount,
+              totalInvested: transactions[i].totalInvested,
               categoryId: 'all',
+              categoryName: 'All',
               date: transactions[i].date,
               updates: transactions[i].updates,
             );
@@ -203,25 +257,18 @@ class WealthController extends GetxController {
       final response = await _wealthProvider.createAssetTransaction({
         'title': title,
         'amount': amount,
+        'date': dateStr,
         'transaction_date': dateStr,
         'notes': notes,
         'asset_category_id': categoryId,
+        'category_id': categoryId,
+        'bank_balance': bankBalance.value,
+        'current_bank_balance': bankBalance.value,
+        'current_balance': bankBalance.value,
       });
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        final data = jsonDecode(response.body);
-        Map<String, dynamic> transactionMap = {};
-        if (data != null) {
-          if (data['asset_transaction'] != null) {
-            transactionMap = data['asset_transaction'];
-          } else if (data['data'] != null) {
-            transactionMap = data['data'];
-          } else {
-            transactionMap = data;
-          }
-        }
-        final newTransaction = WealthTransaction.fromMap(transactionMap);
-        transactions.add(newTransaction);
+        await fetchAssetTrackerData();
         Get.snackbar("Success", "Asset transaction created successfully",
             backgroundColor: const Color(0xFF7B39FD).withOpacity(0.9), colorText: Colors.white);
         return true;
@@ -248,28 +295,18 @@ class WealthController extends GetxController {
       final response = await _wealthProvider.updateAssetTransaction(id, {
         'title': title,
         'amount': amount,
+        'date': dateStr,
         'transaction_date': dateStr,
         'notes': notes,
         'asset_category_id': categoryId,
+        'category_id': categoryId,
+        'bank_balance': bankBalance.value,
+        'current_bank_balance': bankBalance.value,
+        'current_balance': bankBalance.value,
       });
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        final data = jsonDecode(response.body);
-        Map<String, dynamic> transactionMap = {};
-        if (data != null) {
-          if (data['asset_transaction'] != null) {
-            transactionMap = data['asset_transaction'];
-          } else if (data['data'] != null) {
-            transactionMap = data['data'];
-          } else {
-            transactionMap = data;
-          }
-        }
-        final updatedTransaction = WealthTransaction.fromMap(transactionMap);
-        final index = transactions.indexWhere((t) => t.id == id);
-        if (index != -1) {
-          transactions[index] = updatedTransaction;
-        }
+        await fetchAssetTrackerData();
         Get.snackbar("Success", "Asset transaction updated successfully",
             backgroundColor: const Color(0xFF7B39FD).withOpacity(0.9), colorText: Colors.white);
         return true;
@@ -289,23 +326,35 @@ class WealthController extends GetxController {
     }
   }
 
-  void addGotAmount(String transactionId, double amount) {
-    final index = transactions.indexWhere((t) => t.id == transactionId);
-    if (index != -1) {
-      final transaction = transactions[index];
-      final updateId = DateTime.now().millisecondsSinceEpoch.toString();
-      final newUpdate = WealthUpdate(id: updateId, amount: amount, date: DateTime.now());
-      
-      final updatedUpdates = List<WealthUpdate>.from(transaction.updates)..add(newUpdate);
-      
-      transactions[index] = WealthTransaction(
-        id: transaction.id,
-        title: transaction.title,
-        amount: transaction.amount,
-        categoryId: transaction.categoryId,
-        date: transaction.date,
-        updates: updatedUpdates,
-      );
+  Future<bool> addGotAmount(String transactionId, double amount, String notes) async {
+    try {
+      isLoading.value = true;
+      final dateStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
+      final response = await _wealthProvider.addGotAmountHistory(transactionId, {
+        'type': 'return',
+        'amount': amount,
+        'transaction_date': dateStr,
+        'notes': notes,
+      });
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        await fetchAssetTrackerData();
+        Get.snackbar("Success", "Asset transaction history added successfully",
+            backgroundColor: const Color(0xFF7B39FD).withOpacity(0.9), colorText: Colors.white);
+        return true;
+      } else {
+        final errorData = jsonDecode(response.body);
+        Get.snackbar("Error", errorData['message'] ?? "Failed to add transaction history",
+            backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+        return false;
+      }
+    } catch (e) {
+      print("Error adding transaction history: $e");
+      Get.snackbar("Error", "Network error occurred",
+          backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+      return false;
+    } finally {
+      isLoading.value = false;
     }
   }
 
@@ -314,7 +363,7 @@ class WealthController extends GetxController {
       isLoading.value = true;
       final response = await _wealthProvider.deleteAssetTransaction(id);
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        transactions.removeWhere((t) => t.id == id);
+        await fetchAssetTrackerData();
         Get.snackbar("Success", "Asset transaction deleted successfully",
             backgroundColor: const Color(0xFF7B39FD).withOpacity(0.9), colorText: Colors.white);
         return true;
@@ -342,6 +391,9 @@ class WealthController extends GetxController {
   }
 
   double get totalWealth {
+    if (selectedCategoryId.value == 'all') {
+      return otherAssets.value;
+    }
     return filteredTransactions.fold(0.0, (sum, item) => sum + item.totalAmount);
   }
 

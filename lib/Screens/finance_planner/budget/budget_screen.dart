@@ -5,70 +5,102 @@ import 'package:flutter_widgets/controller/expense_controller.dart';
 import 'package:flutter_widgets/models/budget_model.dart';
 import 'package:flutter_widgets/screens/finance_planner/budget/budget_details_screen.dart';
 import 'package:intl/intl.dart';
+import 'package:shimmer/shimmer.dart';
 
-class BudgetScreen extends StatelessWidget {
+class BudgetScreen extends StatefulWidget {
   const BudgetScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final BudgetController controller = Get.put(BudgetController());
+  State<BudgetScreen> createState() => _BudgetScreenState();
+}
+
+class _BudgetScreenState extends State<BudgetScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  late BudgetController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.put(BudgetController());
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(_handleTabSelection);
+    
     // Ensure ExpenseController is initialized for categories
     if (!Get.isRegistered<ExpenseController>()) {
       Get.put(ExpenseController());
     }
+  }
 
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF9FAFB),
-        appBar: AppBar(
-          title: const Text(
-            'Budget Planner',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF111827),
-            ),
+  void _handleTabSelection() {
+    if (_tabController.indexIsChanging) {
+      if (_tabController.index == 0) {
+        controller.fetchActiveBudgets();
+      } else {
+        controller.fetchCompletedBudgets();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabController.removeListener(_handleTabSelection);
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF9FAFB),
+      appBar: AppBar(
+        title: const Text(
+          'Budget Planner',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF111827),
           ),
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: Center(
-            child: GestureDetector(
-              onTap: () => Get.back(),
-              child: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF97316), // Orange theme
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 14),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: Center(
+          child: GestureDetector(
+            onTap: () => Get.back(),
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: const BoxDecoration(
+                color: Color(0xFFF97316), // Orange theme
+                shape: BoxShape.circle,
               ),
+              child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 14),
             ),
           ),
-          centerTitle: true,
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: 'Active'),
-              Tab(text: 'History'),
-            ],
-            labelColor: Color(0xFFF97316),
-            unselectedLabelColor: Color(0xFF6B7280),
-            indicatorColor: Color(0xFFF97316),
-            labelStyle: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-            unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
-          ),
         ),
-        body: TabBarView(
-          children: [
-            _buildBudgetList(context, controller, true),
-            _buildBudgetList(context, controller, false),
+        centerTitle: true,
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'Active'),
+            Tab(text: 'History'),
           ],
+          labelColor: const Color(0xFFF97316),
+          unselectedLabelColor: const Color(0xFF6B7280),
+          indicatorColor: const Color(0xFFF97316),
+          labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
         ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () => _showAddBudgetDialog(context, controller),
-          backgroundColor: const Color(0xFFF97316), // Orange theme
-          child: const Icon(Icons.add, color: Colors.white),
-        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildBudgetList(context, controller, true),
+          _buildBudgetList(context, controller, false),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showAddBudgetDialog(context, controller),
+        backgroundColor: const Color(0xFFF97316), // Orange theme
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
@@ -81,11 +113,7 @@ class BudgetScreen extends StatelessWidget {
           child: Obx(() {
             final budgets = isActive ? controller.activeBudgets : controller.completedBudgets;
             if (controller.isLoading.value && budgets.isEmpty) {
-              return const Center(
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFF97316)),
-                ),
-              );
+              return _buildShimmerList();
             }
             if (budgets.isEmpty) {
               return Center(
@@ -320,7 +348,7 @@ class BudgetScreen extends StatelessWidget {
                   icon: const Icon(Icons.more_vert, color: Color(0xFF6B7280), size: 20),
                   padding: EdgeInsets.zero,
                   onSelected: (val) {
-                    if (val == 'edit') {
+                    if (val == 'edit' && budget.status == 'active') {
                       _showUpdateBudgetDialog(context, controller, budget);
                     } else if (val == 'delete') {
                       _showDeleteConfirmation(context, controller, budget.id);
@@ -839,6 +867,151 @@ class BudgetScreen extends StatelessWidget {
           ),
         ],
       )),
+    );
+  }
+
+  Widget _buildShimmerList() {
+    return ListView.builder(
+      padding: const EdgeInsets.only(left: 24, right: 24, bottom: 24, top: 8),
+      itemCount: 4,
+      itemBuilder: (context, index) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE5E7EB)),
+          ),
+          child: Shimmer.fromColors(
+            baseColor: Colors.grey[300]!,
+            highlightColor: Colors.grey[100]!,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 140,
+                            height: 16,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            width: 80,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 50,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          width: 70,
+                          height: 14,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          width: 60,
+                          height: 14,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      width: 100,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                    Container(
+                      width: 80,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

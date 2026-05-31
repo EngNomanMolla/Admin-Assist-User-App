@@ -64,12 +64,9 @@ class WealthScreen extends StatelessWidget {
             const SizedBox(height: 12),
             // Summary Section
             Obx(() {
-              final totalAsset = controller.totalWealth;
-              // Find transactions in 'Savings' category (ID '4')
-              final bankBalance = controller.transactions
-                  .where((t) => t.categoryId == '4')
-                  .fold(0.0, (sum, t) => sum + t.totalAmount);
-              final othersAssets = totalAsset - bankBalance;
+              final totalAsset = controller.totalAssets.value;
+              final bankBalance = controller.bankBalance.value;
+              final othersAssets = controller.otherAssets.value;
 
               return Container(
                 margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -291,26 +288,47 @@ class WealthScreen extends StatelessWidget {
           ),
         );
       }
-      return ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        itemCount: transactions.length,
-        itemBuilder: (context, index) {
-          final transaction = transactions[index];
-          final categoryName = controller.getCategoryName(transaction.categoryId);
-          return GestureDetector(
-            onTap: () {
-              Get.to(() => AssetHistoryScreen(transaction: transaction));
-            },
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.only(left: 12, top: 10, bottom: 10, right: 4),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFE5E7EB)),
-              ),
-            child: Row(
-              children: [
+      return NotificationListener<ScrollNotification>(
+        onNotification: (ScrollNotification scrollInfo) {
+          if (!controller.isLoading.value &&
+              !controller.isLoadingMore.value &&
+              controller.hasMore.value &&
+              scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent - 200) {
+            controller.fetchTransactions(isLoadMore: true);
+          }
+          return false;
+        },
+        child: ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          itemCount: transactions.length + (controller.hasMore.value ? 1 : 0),
+          itemBuilder: (context, index) {
+            if (index == transactions.length) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color: Color(0xFF7B39FD),
+                    strokeWidth: 2,
+                  ),
+                ),
+              );
+            }
+            final transaction = transactions[index];
+            final categoryName = transaction.categoryName.isNotEmpty ? transaction.categoryName : controller.getCategoryName(transaction.categoryId);
+            return GestureDetector(
+              onTap: () {
+                Get.to(() => AssetHistoryScreen(transaction: transaction));
+              },
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.only(left: 12, top: 10, bottom: 10, right: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
+                ),
+                child: Row(
+                  children: [
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
@@ -407,7 +425,7 @@ class WealthScreen extends StatelessWidget {
           ),
         );
         },
-      );
+      ));
     });
   }
 
@@ -1152,97 +1170,132 @@ class WealthScreen extends StatelessWidget {
 
   void _showGotAmountDialog(BuildContext context, WealthController controller, WealthTransaction transaction) {
     final amountController = TextEditingController();
+    final notesController = TextEditingController();
+
     Get.dialog(
-      Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        backgroundColor: Colors.white,
-        child: SingleChildScrollView(
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF10B981).withOpacity(0.1),
-                        shape: BoxShape.circle,
+      Obx(() {
+        final isLoading = controller.isLoading.value;
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          backgroundColor: Colors.white,
+          child: SingleChildScrollView(
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981).withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.add_moderator_rounded, color: Color(0xFF10B981), size: 20),
                       ),
-                      child: const Icon(Icons.add_moderator_rounded, color: Color(0xFF10B981), size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'Got Amount',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'Current Amount: ৳${transaction.amount.toStringAsFixed(2)}',
-                  style: const TextStyle(fontSize: 14, color: Color(0xFF4B5563)),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Amount to Add',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
-                ),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: amountController,
-                  decoration: InputDecoration(
-                    hintText: '0.00',
-                    hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
-                    prefixText: '৳ ',
-                    prefixStyle: const TextStyle(color: Color(0xFF111827), fontWeight: FontWeight.w600),
-                    filled: true,
-                    fillColor: const Color(0xFFF3F4F6),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Got Amount',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
+                      ),
+                    ],
                   ),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Current Amount: ৳${transaction.amount.toStringAsFixed(2)}',
+                    style: const TextStyle(fontSize: 14, color: Color(0xFF4B5563)),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Amount to Add',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: amountController,
+                    enabled: !isLoading,
+                    decoration: InputDecoration(
+                      hintText: '0.00',
+                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+                      prefixText: '৳ ',
+                      prefixStyle: const TextStyle(color: Color(0xFF111827), fontWeight: FontWeight.w600),
+                      filled: true,
+                      fillColor: const Color(0xFFF3F4F6),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     ),
-                    const SizedBox(width: 12),
-                    ElevatedButton(
-                      onPressed: () {
-                        final addAmount = double.tryParse(amountController.text) ?? 0.0;
-                        if (addAmount > 0) {
-                          controller.addGotAmount(transaction.id, addAmount);
-                          if (context.mounted) {
-                            Navigator.pop(context);
-                          }
-                          Get.snackbar("Success", "Amount added successfully", 
-                            snackPosition: SnackPosition.BOTTOM,
-                            backgroundColor: Colors.white,
-                            colorText: Colors.black);
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF10B981),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        elevation: 0,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Note',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: notesController,
+                    enabled: !isLoading,
+                    decoration: InputDecoration(
+                      hintText: 'e.g. Returned from asset',
+                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+                      filled: true,
+                      fillColor: const Color(0xFFF3F4F6),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: isLoading ? null : () => Navigator.pop(context),
+                        child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
                       ),
-                      child: const Text('Add', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                    ),
-                  ],
-                ),
-              ],
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        onPressed: isLoading
+                            ? null
+                            : () async {
+                                final addAmount = double.tryParse(amountController.text) ?? 0.0;
+                                if (addAmount > 0) {
+                                  final success = await controller.addGotAmount(
+                                    transaction.id,
+                                    addAmount,
+                                    notesController.text,
+                                  );
+                                  if (success && context.mounted) {
+                                    Navigator.pop(context);
+                                  }
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          elevation: 0,
+                        ),
+                        child: isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : const Text('Add', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      }),
     );
   }
 }

@@ -46,6 +46,7 @@ class BudgetController extends GetxController {
       isLoading.value = true;
       activeCurrentPage = 1;
       activeHasMore.value = true;
+      activeBudgetsList.clear();
     }
 
     try {
@@ -108,6 +109,7 @@ class BudgetController extends GetxController {
       isLoading.value = true;
       historyCurrentPage = 1;
       historyHasMore.value = true;
+      completedBudgetsList.clear();
     }
 
     try {

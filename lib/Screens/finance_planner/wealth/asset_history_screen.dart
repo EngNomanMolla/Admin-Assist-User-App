@@ -67,7 +67,7 @@ class AssetHistoryScreen extends StatelessWidget {
                       style: TextStyle(color: Colors.white70, fontSize: 12),
                     ),
                     Text(
-                      '৳${transaction.amount.toStringAsFixed(2)}',
+                      '৳${transaction.totalInvested.toStringAsFixed(2)}',
                       style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800),
                     ),
                   ],

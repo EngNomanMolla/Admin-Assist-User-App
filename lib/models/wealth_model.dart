@@ -49,7 +49,9 @@ class WealthTransaction {
   final String id;
   final String title;
   final double amount; // Original amount
+  final double totalInvested;
   final String categoryId;
+  final String categoryName;
   final DateTime date;
   final List<WealthUpdate> updates;
   final String notes;
@@ -58,7 +60,9 @@ class WealthTransaction {
     required this.id,
     required this.title,
     required this.amount,
+    required this.totalInvested,
     required this.categoryId,
+    required this.categoryName,
     required this.date,
     this.updates = const [],
     this.notes = '',
@@ -75,11 +79,24 @@ class WealthTransaction {
           .map((e) => WealthUpdate.fromMap(e))
           .toList();
     }
+    
+    String catName = '';
+    if (map['category'] != null) {
+      catName = map['category'].toString();
+    } else if (map['asset_category'] != null && map['asset_category'] is Map) {
+      catName = map['asset_category']['name']?.toString() ?? '';
+    }
+
+    final double amt = double.tryParse(map['amount']?.toString() ?? '0') ?? 0.0;
+    final double invested = double.tryParse(map['total_invested']?.toString() ?? '') ?? amt;
+
     return WealthTransaction(
       id: map['id']?.toString() ?? '',
       title: map['title'] ?? '',
-      amount: double.tryParse(map['amount']?.toString() ?? '0') ?? 0.0,
+      amount: amt,
+      totalInvested: invested,
       categoryId: map['asset_category_id']?.toString() ?? map['category_id']?.toString() ?? '',
+      categoryName: catName,
       date: map['transaction_date'] != null 
           ? DateTime.parse(map['transaction_date']) 
           : (map['date'] != null 
@@ -95,7 +112,9 @@ class WealthTransaction {
       'id': id,
       'title': title,
       'amount': amount,
+      'total_invested': totalInvested,
       'asset_category_id': categoryId,
+      'category_name': categoryName,
       'transaction_date': date.toIso8601String(),
       'notes': notes,
       'updates': updates.map((e) => e.toMap()).toList(),
@@ -103,6 +122,6 @@ class WealthTransaction {
   }
 
   double get totalAmount {
-    return amount + updates.fold(0.0, (sum, u) => sum + u.amount);
+    return amount;
   }
 }

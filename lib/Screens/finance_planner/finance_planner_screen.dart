@@ -8,6 +8,7 @@ import 'package:flutter_widgets/controller/income_controller.dart';
 import 'package:flutter_widgets/controller/expense_controller.dart';
 import 'package:flutter_widgets/controller/debt_controller.dart';
 import 'package:flutter_widgets/controller/wealth_controller.dart';
+import 'package:flutter_widgets/controller/finance_planner_controller.dart';
 
 class FinancePlannerScreen extends StatelessWidget {
   const FinancePlannerScreen({super.key});
@@ -19,6 +20,8 @@ class FinancePlannerScreen extends StatelessWidget {
     final ExpenseController expenseController = Get.put(ExpenseController());
     final DebtController debtController = Get.put(DebtController());
     final WealthController wealthController = Get.put(WealthController());
+    final FinancePlannerController hubController = Get.put(FinancePlannerController());
+    hubController.fetchPersonalFinanceHubData();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
@@ -49,9 +52,11 @@ class FinancePlannerScreen extends StatelessWidget {
         centerTitle: true,
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Padding(
+        child: RefreshIndicator(
+          onRefresh: () => hubController.fetchPersonalFinanceHubData(),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Padding(
             padding: const EdgeInsets.all(24.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -68,9 +73,9 @@ class FinancePlannerScreen extends StatelessWidget {
 
                 // Summary Section 1: Income, Expense, Balance
                 Obx(() {
-                  final totalIncome = incomeController.totalIncome;
-                  final totalExpense = expenseController.totalExpense;
-                  final balance = totalIncome - totalExpense;
+                  final totalIncome = hubController.income.value;
+                  final totalExpense = hubController.expense.value;
+                  final balance = hubController.netIncome.value;
 
                   return Container(
                     padding: const EdgeInsets.all(16),
@@ -95,9 +100,8 @@ class FinancePlannerScreen extends StatelessWidget {
 
                 // Summary Section 2: Liability, Asset
                 Obx(() {
-                  final netIncome = incomeController.totalIncome - expenseController.totalExpense;
-                  final totalLiability = debtController.totalDebt + netIncome;
-                  final totalWealth = wealthController.totalWealth;
+                  final totalLiability = hubController.totalLiability.value;
+                  final totalWealth = hubController.totalAsset.value;
 
                   return Container(
                     padding: const EdgeInsets.all(16),
@@ -119,9 +123,7 @@ class FinancePlannerScreen extends StatelessWidget {
 
                 // Summary Section 3: Cash & Bank Balance
                 Obx(() {
-                  final bankBalance = incomeController.bankBalance.value != 0.0
-                      ? incomeController.bankBalance.value
-                      : wealthController.bankBalance.value;
+                  final bankBalance = hubController.bankBalance.value;
 
                   return Container(
                     width: double.infinity,
@@ -201,7 +203,8 @@ class FinancePlannerScreen extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildSummaryItem(String label, double amount, Color color) {

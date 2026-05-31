@@ -13,7 +13,14 @@ class WealthProvider extends ApiProvider {
   Future<http.Response> deleteAssetCategory(String id) =>
       postRequest('/asset_categories/$id', {'_method': 'DELETE'});
 
-  Future<http.Response> getAssetTransactions() => getRequest('/asset_transactions');
+  Future<http.Response> getAssetTransactions({int? page, int? perPage}) {
+    final Map<String, String> queryParams = {};
+    if (page != null) queryParams['page'] = page.toString();
+    if (perPage != null) queryParams['per_page'] = perPage.toString();
+
+    final queryString = Uri(queryParameters: queryParams).query;
+    return getRequest('/asset_transactions${queryString.isNotEmpty ? '?$queryString' : ''}');
+  }
 
   Future<http.Response> createAssetTransaction(Map<String, dynamic> data) =>
       postRequest('/asset_transactions', data);
@@ -23,4 +30,11 @@ class WealthProvider extends ApiProvider {
 
   Future<http.Response> deleteAssetTransaction(String id) =>
       postRequest('/asset_transactions/$id', {'_method': 'DELETE'});
+
+  Future<http.Response> getPersonalFinanceHubData() => getRequest('/finance_hub');
+
+  Future<http.Response> getAssetTrackerData() => getRequest('/asset_tracker');
+
+  Future<http.Response> addGotAmountHistory(String transactionId, Map<String, dynamic> data) =>
+      postRequest('/asset_transactions/$transactionId/add-history', data);
 }
