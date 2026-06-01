@@ -88,10 +88,23 @@ class IncomeScreen extends StatelessWidget {
             ),
           ],
         ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () => _showAddTransactionDialog(context, controller),
-          backgroundColor: const Color(0xFF10B981),
-          child: const Icon(Icons.add, color: Colors.white),
+        floatingActionButton: Builder(
+          builder: (context) {
+            final tabController = DefaultTabController.of(context);
+            return AnimatedBuilder(
+              animation: tabController,
+              builder: (context, child) {
+                if (tabController.index == 1) {
+                  return const SizedBox.shrink();
+                }
+                return FloatingActionButton(
+                  onPressed: () => _showAddTransactionDialog(context, controller),
+                  backgroundColor: const Color(0xFF10B981),
+                  child: const Icon(Icons.add, color: Colors.white),
+                );
+              },
+            );
+          },
         ),
       ),
     );

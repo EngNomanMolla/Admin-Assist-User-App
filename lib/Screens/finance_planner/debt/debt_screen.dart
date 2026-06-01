@@ -137,10 +137,23 @@ class DebtScreen extends StatelessWidget {
             ),
           ],
         ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () => _showAddTransactionDialog(context, controller),
-          backgroundColor: const Color(0xFFF59E0B),
-          child: const Icon(Icons.add, color: Colors.white),
+        floatingActionButton: Builder(
+          builder: (context) {
+            final tabController = DefaultTabController.of(context);
+            return AnimatedBuilder(
+              animation: tabController,
+              builder: (context, child) {
+                if (tabController.index == 1) {
+                  return const SizedBox.shrink();
+                }
+                return FloatingActionButton(
+                  onPressed: () => _showAddTransactionDialog(context, controller),
+                  backgroundColor: const Color(0xFFF59E0B),
+                  child: const Icon(Icons.add, color: Colors.white),
+                );
+              },
+            );
+          },
         ),
       ),
     );
