@@ -202,7 +202,7 @@ class HomeScreen extends StatelessWidget {
       },
       {
         'title': 'Essential\nProducts',
-        'icon': Icons.podcasts_rounded,
+        'icon': Icons.shopping_bag_rounded,
         'color': const Color(0xFFEC4899),
       },
       {

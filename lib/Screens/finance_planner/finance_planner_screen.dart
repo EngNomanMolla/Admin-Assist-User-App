@@ -28,7 +28,7 @@ class FinancePlannerScreen extends StatelessWidget {
       backgroundColor: const Color(0xFFF9FAFB),
       appBar: AppBar(
         title: const Text(
-          'Personal Finance Hub',
+          'Personal Finance',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,

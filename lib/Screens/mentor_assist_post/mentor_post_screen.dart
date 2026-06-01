@@ -229,8 +229,9 @@ class _MentorPostCardState extends State<MentorPostCard> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                Text(
+                                Text(
                   post['title'] ?? '',
+                  textAlign: TextAlign.justify,
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
@@ -244,6 +245,7 @@ class _MentorPostCardState extends State<MentorPostCard> {
                   children: [
                     Text(
                       subtitle,
+                      textAlign: TextAlign.justify,
                       style: const TextStyle(
                         color: Color(0xFF4B5563),
                         fontSize: 14,
