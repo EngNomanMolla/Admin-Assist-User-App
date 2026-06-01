@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_widgets/controller/home_controller.dart';
 import 'package:flutter_widgets/controller/mentor_post_controller.dart';
 import 'package:flutter_widgets/screens/career_update/job_circular_screen.dart';
@@ -23,40 +24,47 @@ class HomeScreen extends StatelessWidget {
     final HomeController controller = Get.put(HomeController());
     Get.put(MentorPostController()); // Initialize to track new posts
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
-              child: _buildTopBar(),
-            ),
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: () => controller.fetchDashboardData(),
-                color: const Color(0xFF7B39FD),
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 110),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Obx(() => _buildLiveBox(controller)),
-                      const SizedBox(height: 20),
-                      Obx(() => ImageSliderCustom(banners: controller.banners.value, isLoading: controller.isLoading.value)),
-                      const SizedBox(height: 24),
-                      _buildSectionHeader('Quick Access'),
-                      const SizedBox(height: 16),
-                      _buildGridView(context),
-                    ],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark, // dark icons for Android
+        statusBarBrightness: Brightness.light, // dark icons for iOS
+      ),
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF9FAFB),
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+                child: _buildTopBar(),
+              ),
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: () => controller.fetchDashboardData(),
+                  color: const Color(0xFF7B39FD),
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(24, 12, 24, 110),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Obx(() => _buildLiveBox(controller)),
+                        const SizedBox(height: 20),
+                        Obx(() => ImageSliderCustom(banners: controller.banners.value, isLoading: controller.isLoading.value)),
+                        const SizedBox(height: 24),
+                        _buildSectionHeader('Quick Access'),
+                        const SizedBox(height: 16),
+                        _buildGridView(context),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
 import 'package:flutter_widgets/screens/finance_planner/income/income_screen.dart';
 import 'package:flutter_widgets/screens/finance_planner/expense/expense_screen.dart';
@@ -76,6 +77,7 @@ class FinancePlannerScreen extends StatelessWidget {
                   final totalIncome = hubController.income.value;
                   final totalExpense = hubController.expense.value;
                   final balance = hubController.netIncome.value;
+                  final isLoading = hubController.isLoading.value;
 
                   return Container(
                     padding: const EdgeInsets.all(16),
@@ -87,11 +89,11 @@ class FinancePlannerScreen extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _buildSummaryItem('Income', totalIncome, const Color(0xFF10B981)),
+                        _buildSummaryItem('Income', totalIncome, const Color(0xFF10B981), isLoading: isLoading),
                         const Text('-', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF6B7280))),
-                        _buildSummaryItem('Expense', totalExpense, const Color(0xFFEF4444)),
+                        _buildSummaryItem('Expense', totalExpense, const Color(0xFFEF4444), isLoading: isLoading),
                         const Text('=', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF6B7280))),
-                        _buildSummaryItem('Net Income', balance, const Color(0xFF3B82F6)),
+                        _buildSummaryItem('Net Income', balance, const Color(0xFF3B82F6), isLoading: isLoading),
                       ],
                     ),
                   );
@@ -102,6 +104,7 @@ class FinancePlannerScreen extends StatelessWidget {
                 Obx(() {
                   final totalLiability = hubController.totalLiability.value;
                   final totalWealth = hubController.totalAsset.value;
+                  final isLoading = hubController.isLoading.value;
 
                   return Container(
                     padding: const EdgeInsets.all(16),
@@ -113,8 +116,8 @@ class FinancePlannerScreen extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildSummaryItem('Total Liability', totalLiability, const Color(0xFFF59E0B)),
-                        _buildSummaryItem('Total Asset', totalWealth, const Color(0xFF7B39FD)),
+                        _buildSummaryItem('Total Liability', totalLiability, const Color(0xFFF59E0B), isLoading: isLoading),
+                        _buildSummaryItem('Total Asset', totalWealth, const Color(0xFF7B39FD), isLoading: isLoading),
                       ],
                     ),
                   );
@@ -124,6 +127,7 @@ class FinancePlannerScreen extends StatelessWidget {
                 // Summary Section 3: Cash & Bank Balance
                 Obx(() {
                   final bankBalance = hubController.bankBalance.value;
+                  final isLoading = hubController.isLoading.value;
 
                   return Container(
                     width: double.infinity,
@@ -141,14 +145,23 @@ class FinancePlannerScreen extends StatelessWidget {
                           style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          '৳${bankBalance.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF10B981),
-                          ),
-                        ),
+                        isLoading
+                            ?  Container(
+                                height: 27,
+                                alignment: Alignment.centerLeft,
+                                child: SpinKitThreeBounce(
+                                  color: Color(0xFF10B981),
+                                  size: 18.0,
+                                ),
+                              )
+                            : Text(
+                                '৳${bankBalance.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF10B981),
+                                ),
+                              ),
                       ],
                     ),
                   );
@@ -207,7 +220,7 @@ class FinancePlannerScreen extends StatelessWidget {
   );
   }
 
-  Widget _buildSummaryItem(String label, double amount, Color color) {
+  Widget _buildSummaryItem(String label, double amount, Color color, {bool isLoading = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -216,10 +229,19 @@ class FinancePlannerScreen extends StatelessWidget {
           style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
         ),
         const SizedBox(height: 4),
-        Text(
-          '৳${amount.toStringAsFixed(0)}',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: color),
-        ),
+        isLoading
+            ? Container(
+                height: 24,
+                alignment: Alignment.centerLeft,
+                child: SpinKitThreeBounce(
+                  color: color,
+                  size: 14.0,
+                ),
+              )
+            : Text(
+                '৳${amount.toStringAsFixed(0)}',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: color),
+              ),
       ],
     );
   }
