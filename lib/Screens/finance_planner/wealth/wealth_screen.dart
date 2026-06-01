@@ -787,6 +787,7 @@ class WealthScreen extends StatelessWidget {
     final amountController = TextEditingController();
     final notesController = TextEditingController();
     String selectedCategory = controller.categories.isNotEmpty ? controller.categories.first.id : 'all';
+    final selectedDate = DateTime.now().obs;
 
     if (controller.categories.isEmpty) {
       Get.snackbar('Error', 'Please create a category first!', snackPosition: SnackPosition.BOTTOM);
@@ -887,6 +888,61 @@ class WealthScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   const Text(
+                    'Date',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
+                  ),
+                  const SizedBox(height: 6),
+                  GestureDetector(
+                    onTap: isLoading
+                        ? null
+                        : () async {
+                            final DateTime? picked = await showDatePicker(
+                              context: context,
+                              initialDate: selectedDate.value,
+                              firstDate: DateTime(2000),
+                              lastDate: DateTime(2101),
+                              builder: (context, child) {
+                                return Theme(
+                                  data: Theme.of(context).copyWith(
+                                    colorScheme: const ColorScheme.light(
+                                      primary: Color(0xFF7B39FD),
+                                      onPrimary: Colors.white,
+                                      onSurface: Color(0xFF111827),
+                                    ),
+                                    textButtonTheme: TextButtonThemeData(
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: const Color(0xFF7B39FD),
+                                      ),
+                                    ),
+                                  ),
+                                  child: child!,
+                                );
+                              },
+                            );
+                            if (picked != null) {
+                              selectedDate.value = picked;
+                            }
+                          },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3F4F6),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.calendar_today_rounded, color: Color(0xFF7B39FD), size: 18),
+                          const SizedBox(width: 10),
+                          Text(
+                            DateFormat('dd MMM yyyy').format(selectedDate.value),
+                            style: const TextStyle(color: Color(0xFF111827), fontSize: 14, fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
                     'Notes',
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
                   ),
@@ -923,6 +979,7 @@ class WealthScreen extends StatelessWidget {
                                     amount: amount,
                                     categoryId: selectedCategory,
                                     notes: notesController.text,
+                                    customDate: selectedDate.value,
                                   );
                                   if (success && context.mounted) {
                                     Navigator.pop(context);
@@ -962,6 +1019,7 @@ class WealthScreen extends StatelessWidget {
     final amountController = TextEditingController(text: transaction.amount.toString());
     final notesController = TextEditingController(text: transaction.notes);
     String selectedCategory = transaction.categoryId;
+    final selectedDate = (transaction.date).obs;
 
     Get.dialog(
       Obx(() {
@@ -1057,6 +1115,61 @@ class WealthScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   const Text(
+                    'Date',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
+                  ),
+                  const SizedBox(height: 6),
+                  GestureDetector(
+                    onTap: isLoading
+                        ? null
+                        : () async {
+                            final DateTime? picked = await showDatePicker(
+                              context: context,
+                              initialDate: selectedDate.value,
+                              firstDate: DateTime(2000),
+                              lastDate: DateTime(2101),
+                              builder: (context, child) {
+                                return Theme(
+                                  data: Theme.of(context).copyWith(
+                                    colorScheme: const ColorScheme.light(
+                                      primary: Color(0xFF7B39FD),
+                                      onPrimary: Colors.white,
+                                      onSurface: Color(0xFF111827),
+                                    ),
+                                    textButtonTheme: TextButtonThemeData(
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: const Color(0xFF7B39FD),
+                                      ),
+                                    ),
+                                  ),
+                                  child: child!,
+                                );
+                              },
+                            );
+                            if (picked != null) {
+                              selectedDate.value = picked;
+                            }
+                          },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3F4F6),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.calendar_today_rounded, color: Color(0xFF7B39FD), size: 18),
+                          const SizedBox(width: 10),
+                          Text(
+                            DateFormat('dd MMM yyyy').format(selectedDate.value),
+                            style: const TextStyle(color: Color(0xFF111827), fontSize: 14, fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
                     'Notes',
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
                   ),
@@ -1094,6 +1207,7 @@ class WealthScreen extends StatelessWidget {
                                     amount: amount,
                                     categoryId: selectedCategory,
                                     notes: notesController.text,
+                                    customDate: selectedDate.value,
                                   );
                                   if (success && context.mounted) {
                                     Navigator.pop(context);

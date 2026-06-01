@@ -250,10 +250,10 @@ class WealthController extends GetxController {
     }
   }
 
-  Future<bool> addTransaction({required String title, required double amount, required String categoryId, required String notes}) async {
+  Future<bool> addTransaction({required String title, required double amount, required String categoryId, required String notes, DateTime? customDate}) async {
     try {
       isLoading.value = true;
-      final dateStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
+      final dateStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(customDate ?? DateTime.now());
       final response = await _wealthProvider.createAssetTransaction({
         'title': title,
         'amount': amount,
@@ -288,10 +288,10 @@ class WealthController extends GetxController {
     }
   }
 
-  Future<bool> updateTransaction({required String id, required String title, required double amount, required String categoryId, required String notes}) async {
+  Future<bool> updateTransaction({required String id, required String title, required double amount, required String categoryId, required String notes, DateTime? customDate}) async {
     try {
       isLoading.value = true;
-      final dateStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
+      final dateStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(customDate ?? DateTime.now());
       final response = await _wealthProvider.updateAssetTransaction(id, {
         'title': title,
         'amount': amount,

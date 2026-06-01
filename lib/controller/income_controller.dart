@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_widgets/models/income_model.dart';
 import 'package:flutter_widgets/provider/income_provider.dart';
+import 'package:intl/intl.dart';
 
 class IncomeController extends GetxController {
   final IncomeProvider _incomeProvider = IncomeProvider();
@@ -236,14 +237,16 @@ class IncomeController extends GetxController {
     }
   }
 
-  Future<bool> addTransaction({required String title, required double amount, required String categoryId}) async {
+  Future<bool> addTransaction({required String title, required double amount, required String categoryId, DateTime? customDate}) async {
     try {
       isLoading.value = true;
+      final dateStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(customDate ?? DateTime.now());
       final response = await _incomeProvider.createIncomeTransaction({
         'title': title,
         'amount': amount,
         'income_category_id': categoryId,
         'category_id': categoryId,
+        'date': dateStr,
       });
       if (response.statusCode >= 200 && response.statusCode < 300) {
         await fetchTransactions();
@@ -291,14 +294,16 @@ class IncomeController extends GetxController {
     }
   }
 
-  Future<bool> updateTransaction({required String id, required String title, required double amount, required String categoryId}) async {
+  Future<bool> updateTransaction({required String id, required String title, required double amount, required String categoryId, DateTime? customDate}) async {
     try {
       isLoading.value = true;
+      final dateStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(customDate ?? DateTime.now());
       final response = await _incomeProvider.updateIncomeTransaction(id, {
         'title': title,
         'amount': amount,
         'income_category_id': categoryId,
         'category_id': categoryId,
+        'date': dateStr,
       });
       if (response.statusCode >= 200 && response.statusCode < 300) {
         await fetchTransactions();

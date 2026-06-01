@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_widgets/provider/liability_provider.dart';
 import '../models/debt_model.dart';
+import 'package:intl/intl.dart';
 
 class DebtController extends GetxController {
   final LiabilityProvider _liabilityProvider = LiabilityProvider();
@@ -234,14 +235,15 @@ class DebtController extends GetxController {
     }
   }
 
-  Future<bool> addTransaction({required String title, required double amount, required String categoryId}) async {
+  Future<bool> addTransaction({required String title, required double amount, required String categoryId, DateTime? customDate}) async {
     try {
       isLoading.value = true;
+      final dateStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(customDate ?? DateTime.now());
       final response = await _liabilityProvider.createLiabilityTransaction({
         'title': title,
         'amount': amount,
         'liability_category_id': categoryId,
-        'date': DateTime.now().toIso8601String(),
+        'date': dateStr,
       });
       if (response.statusCode >= 200 && response.statusCode < 300) {
         await fetchTransactions();
@@ -264,13 +266,15 @@ class DebtController extends GetxController {
     }
   }
 
-  Future<bool> updateTransaction({required String id, required String title, required double amount, required String categoryId}) async {
+  Future<bool> updateTransaction({required String id, required String title, required double amount, required String categoryId, DateTime? customDate}) async {
     try {
       isLoading.value = true;
+      final dateStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(customDate ?? DateTime.now());
       final response = await _liabilityProvider.updateLiabilityTransaction(id, {
         'title': title,
         'amount': amount,
         'liability_category_id': categoryId,
+        'date': dateStr,
       });
       if (response.statusCode >= 200 && response.statusCode < 300) {
         await fetchTransactions();
