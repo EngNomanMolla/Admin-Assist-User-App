@@ -91,6 +91,7 @@ flutter:
     - assets/images/4rdpic.png
     - assets/images/5thpic.png
     - assets/images/postpic.png
+    - assets/images/logo.png
    
 
   # An image asset can refer to one or more resolution-specific "variants", see

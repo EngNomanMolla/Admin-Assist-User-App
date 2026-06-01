@@ -71,29 +71,42 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildTopBar() {
-    return RichText(
-      text: const TextSpan(
-        style: TextStyle(
-          fontSize: 26,
-          letterSpacing: -0.5,
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Image.asset(
+          'assets/images/logo.png',
+          height: 32,
+          width: 32,
+          fit: BoxFit.contain,
         ),
-        children: [
-          TextSpan(
-            text: 'Mentor ',
+        const SizedBox(width: 8),
+        RichText(
+          text: const TextSpan(
             style: TextStyle(
-              fontWeight: FontWeight.w900,
-              color: Color(0xFF111827),
+              fontSize: 26,
+              letterSpacing: -0.5,
             ),
+            children: [
+              TextSpan(
+                text: 'Mentor ',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF111827),
+                ),
+              ),
+              TextSpan(
+                text: 'Assist',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF7B39FD),
+                ),
+              ),
+            ],
           ),
-          TextSpan(
-            text: 'Assist',
-            style: TextStyle(
-              fontWeight: FontWeight.w900,
-              color: Color(0xFF7B39FD),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
