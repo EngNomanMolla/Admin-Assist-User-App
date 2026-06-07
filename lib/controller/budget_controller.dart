@@ -12,6 +12,11 @@ class BudgetController extends GetxController {
   var completedBudgetsList = <Budget>[].obs;
   var isLoading = false.obs;
 
+  var activeSummary = Rxn<BudgetSummary>();
+  var historySummary = Rxn<BudgetSummary>();
+  var isLoadingSummaryActive = false.obs;
+  var isLoadingSummaryHistory = false.obs;
+
   // Active filters & pagination
   var activeMonth = RxnInt(DateTime.now().month);
   var activeYear = RxnInt(DateTime.now().year);
@@ -36,6 +41,44 @@ class BudgetController extends GetxController {
     fetchBudgets();
   }
 
+  Future<void> fetchActiveBudgetSummary() async {
+    try {
+      isLoadingSummaryActive.value = true;
+      final response = await _budgetProvider.getBudgetSummary(
+        status: 'active',
+        month: activeMonth.value,
+        year: activeYear.value,
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        activeSummary.value = BudgetSummary.fromMap(data['summary'] ?? {});
+      }
+    } catch (e) {
+      print("Error fetching active budget summary: $e");
+    } finally {
+      isLoadingSummaryActive.value = false;
+    }
+  }
+
+  Future<void> fetchCompletedBudgetSummary() async {
+    try {
+      isLoadingSummaryHistory.value = true;
+      final response = await _budgetProvider.getBudgetSummary(
+        status: historyStatus.value,
+        month: historyMonth.value,
+        year: historyYear.value,
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        historySummary.value = BudgetSummary.fromMap(data['summary'] ?? {});
+      }
+    } catch (e) {
+      print("Error fetching completed budget summary: $e");
+    } finally {
+      isLoadingSummaryHistory.value = false;
+    }
+  }
+
   Future<void> fetchActiveBudgets({bool isLoadMore = false}) async {
     if (isLoadMore) {
       if (isLoadingMoreActive.value || !activeHasMore.value) return;
@@ -47,6 +90,7 @@ class BudgetController extends GetxController {
       activeCurrentPage = 1;
       activeHasMore.value = true;
       activeBudgetsList.clear();
+      fetchActiveBudgetSummary();
     }
 
     try {
@@ -110,6 +154,7 @@ class BudgetController extends GetxController {
       historyCurrentPage = 1;
       historyHasMore.value = true;
       completedBudgetsList.clear();
+      fetchCompletedBudgetSummary();
     }
 
     try {

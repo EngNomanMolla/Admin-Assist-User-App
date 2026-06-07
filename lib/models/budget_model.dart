@@ -52,3 +52,27 @@ class Budget {
     };
   }
 }
+
+class BudgetSummary {
+  final double totalBudget;
+  final double totalSpent;
+  final double totalRemaining;
+
+  BudgetSummary({
+    required this.totalBudget,
+    required this.totalSpent,
+    required this.totalRemaining,
+  });
+
+  factory BudgetSummary.fromMap(Map<String, dynamic> map) {
+    return BudgetSummary(
+      totalBudget: double.tryParse(map['total_budget']?.toString() ?? '') ?? 0.0,
+      totalSpent: double.tryParse(map['total_spent']?.toString() ?? '') ?? 0.0,
+      totalRemaining: double.tryParse(map['total_remaining']?.toString() ?? '') ?? 0.0,
+    );
+  }
+
+  factory BudgetSummary.empty() {
+    return BudgetSummary(totalBudget: 0.0, totalSpent: 0.0, totalRemaining: 0.0);
+  }
+}

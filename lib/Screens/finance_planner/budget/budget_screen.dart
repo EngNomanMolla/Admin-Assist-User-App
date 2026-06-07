@@ -109,6 +109,7 @@ class _BudgetScreenState extends State<BudgetScreen> with SingleTickerProviderSt
     return Column(
       children: [
         _buildFilterBar(context, controller, isActive),
+        _buildSummaryCard(context, controller, isActive),
         Expanded(
           child: Obx(() {
             final budgets = isActive ? controller.activeBudgets : controller.completedBudgets;
@@ -164,6 +165,105 @@ class _BudgetScreenState extends State<BudgetScreen> with SingleTickerProviderSt
           }),
         ),
       ],
+    );
+  }
+
+  Widget _buildSummaryCard(BuildContext context, BudgetController controller, bool isActive) {
+    return Obx(() {
+      final summary = isActive ? controller.activeSummary.value : controller.historySummary.value;
+      final isSummaryLoading = isActive ? controller.isLoadingSummaryActive.value : controller.isLoadingSummaryHistory.value;
+
+      if (isSummaryLoading && summary == null) {
+        return _buildSummaryShimmer();
+      }
+
+      if (summary == null) {
+        return const SizedBox.shrink();
+      }
+
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.01),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _buildSummaryItem('Total Budget', summary.totalBudget, const Color(0xFF111827)),
+            const Text('-', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF9CA3AF))),
+            _buildSummaryItem('Total Spent', summary.totalSpent, const Color(0xFFEF4444)),
+            const Text('=', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF9CA3AF))),
+            _buildSummaryItem('Total Remaining', summary.totalRemaining, const Color(0xFF10B981)),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _buildSummaryItem(String label, double amount, Color amountColor) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280), fontWeight: FontWeight.w500),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '৳${amount.toStringAsFixed(0)}',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: amountColor),
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryShimmer() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Shimmer.fromColors(
+        baseColor: Colors.grey[300]!,
+        highlightColor: Colors.grey[100]!,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: List.generate(5, (index) {
+            if (index % 2 == 1) {
+              return const Text(
+                ' ',
+                style: TextStyle(fontSize: 16),
+              );
+            }
+            return Expanded(
+              child: Column(
+                children: [
+                  Container(height: 10, width: 60, color: Colors.white),
+                  const SizedBox(height: 6),
+                  Container(height: 14, width: 50, color: Colors.white),
+                ],
+              ),
+            );
+          }),
+        ),
+      ),
     );
   }
 

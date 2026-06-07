@@ -20,6 +20,19 @@ class BudgetProvider extends ApiProvider {
     return getRequest('/budgets${queryString.isNotEmpty ? '?$queryString' : ''}');
   }
 
+  Future<http.Response> getBudgetSummary({
+    required String status,
+    int? month,
+    int? year,
+  }) {
+    final Map<String, String> queryParams = {'status': status};
+    if (month != null) queryParams['month'] = month.toString();
+    if (year != null) queryParams['year'] = year.toString();
+
+    final queryString = Uri(queryParameters: queryParams).query;
+    return getRequest('/budgets/summary${queryString.isNotEmpty ? '?$queryString' : ''}');
+  }
+
   Future<http.Response> createBudget(Map<String, dynamic> data) =>
       postRequest('/budgets', data);
 
