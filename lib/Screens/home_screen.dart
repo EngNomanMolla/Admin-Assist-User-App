@@ -11,6 +11,7 @@ import 'package:flutter_widgets/screens/targetbox_product/targetbox_product.dart
 import 'package:flutter_widgets/screens/todo_list_screen/todo_list_screen.dart';
 import 'package:flutter_widgets/screens/calculator_screen/calculator_screen.dart';
 import 'package:flutter_widgets/screens/finance_planner/budget/budget_screen.dart';
+import 'package:flutter_widgets/screens/community/join_community_screen.dart';
 import 'package:get/get.dart';
 import 'package:marquee/marquee.dart';
 import 'package:shimmer/shimmer.dart';
@@ -228,6 +229,11 @@ class HomeScreen extends StatelessWidget {
         'icon': Icons.support_agent_rounded,
         'color': const Color(0xFF6366F1),
       },
+      {
+        'title': 'Join our\nCommunity',
+        'icon': Icons.groups_rounded,
+        'color': const Color(0xFF7B39FD),
+      },
     ];
 
     return GridView.builder(
@@ -262,6 +268,8 @@ class HomeScreen extends StatelessWidget {
               Get.to(() => JobCircularScreen());
             } else if (title.contains('Mentor')) {
               Get.to(() => const MentorPostScreen());
+            } else if (title.contains('Join')) {
+              Get.to(() => const JoinCommunityScreen());
             }
           },
           child: Container(
