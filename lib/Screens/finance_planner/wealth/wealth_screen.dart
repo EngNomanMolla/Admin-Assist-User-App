@@ -4,6 +4,7 @@ import 'package:flutter_widgets/controller/wealth_controller.dart';
 import 'package:flutter_widgets/models/wealth_model.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_widgets/screens/finance_planner/wealth/asset_history_screen.dart';
+import 'package:shimmer/shimmer.dart';
 
 class WealthScreen extends StatelessWidget {
   const WealthScreen({super.key});
@@ -286,6 +287,9 @@ class WealthScreen extends StatelessWidget {
   Widget _buildTransactionList(WealthController controller) {
     return Obx(() {
       final transactions = controller.filteredTransactions;
+      if (controller.isLoading.value && transactions.isEmpty) {
+        return _buildShimmerList();
+      }
       if (transactions.isEmpty) {
         return Center(
           child: Column(
@@ -392,12 +396,12 @@ class WealthScreen extends StatelessWidget {
                   icon: const Icon(Icons.more_vert, color: Color(0xFF6B7280), size: 20),
                   padding: EdgeInsets.zero,
                   onSelected: (val) {
-                    if (val == 'edit') {
-                      _showUpdateTransactionDialog(context, controller, transaction);
-                    } else if (val == 'delete') {
+                    if (val == 'delete') {
                       _showDeleteConfirmation(context, controller, transaction.id);
                     } else if (val == 'got') {
                       _showGotAmountDialog(context, controller, transaction);
+                    } else if (val == 'invest_extra') {
+                      _showInvestExtraDialog(context, controller, transaction);
                     }
                   },
                   itemBuilder: (context) => [
@@ -412,12 +416,12 @@ class WealthScreen extends StatelessWidget {
                       ),
                     ),
                     const PopupMenuItem(
-                      value: 'edit',
+                      value: 'invest_extra',
                       child: Row(
                         children: [
-                          Icon(Icons.edit_rounded, color: Color(0xFF6B7280), size: 18),
+                          Icon(Icons.add_circle_outline_rounded, color: Color(0xFF7B39FD), size: 18),
                           SizedBox(width: 8),
-                          Text('Edit'),
+                          Text('Invest Extra Amount'),
                         ],
                       ),
                     ),
@@ -1027,233 +1031,7 @@ class WealthScreen extends StatelessWidget {
     );
   }
 
-  void _showUpdateTransactionDialog(BuildContext context, WealthController controller, WealthTransaction transaction) {
-    final titleController = TextEditingController(text: transaction.title);
-    final amountController = TextEditingController(text: transaction.amount.toString());
-    final notesController = TextEditingController(text: transaction.notes);
-    String selectedCategory = transaction.categoryId;
-    final selectedDate = (transaction.date).obs;
 
-    Get.dialog(
-      Obx(() {
-        final isLoading = controller.isLoading.value;
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          backgroundColor: Colors.white,
-          child: SingleChildScrollView(
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF7B39FD).withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.edit_rounded, color: Color(0xFF7B39FD), size: 20),
-                      ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'Update Asset',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Title',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
-                  ),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: titleController,
-                    enabled: !isLoading,
-                    decoration: InputDecoration(
-                      hintText: 'e.g. Monthly Salary',
-                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
-                      filled: true,
-                      fillColor: const Color(0xFFF3F4F6),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Amount',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
-                  ),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: amountController,
-                    enabled: !isLoading,
-                    decoration: InputDecoration(
-                      hintText: '0.00',
-                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
-                      prefixText: '৳ ',
-                      prefixStyle: const TextStyle(color: Color(0xFF111827), fontWeight: FontWeight.w600),
-                      filled: true,
-                      fillColor: const Color(0xFFF3F4F6),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    ),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Category',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
-                  ),
-                  const SizedBox(height: 6),
-                  DropdownButtonFormField<String>(
-                    value: selectedCategory,
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: const Color(0xFFF3F4F6),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    ),
-                    items: controller.categories.map((c) {
-                      return DropdownMenuItem(value: c.id, child: Text(c.name));
-                    }).toList(),
-                    onChanged: isLoading
-                        ? null
-                        : (val) {
-                            selectedCategory = val ?? 'all';
-                          },
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Date',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
-                  ),
-                  const SizedBox(height: 6),
-                  GestureDetector(
-                    onTap: isLoading
-                        ? null
-                        : () async {
-                            final DateTime? picked = await showDatePicker(
-                              context: context,
-                              initialDate: selectedDate.value,
-                              firstDate: DateTime(2000),
-                              lastDate: DateTime(2101),
-                              builder: (context, child) {
-                                return Theme(
-                                  data: Theme.of(context).copyWith(
-                                    colorScheme: const ColorScheme.light(
-                                      primary: Color(0xFF7B39FD),
-                                      onPrimary: Colors.white,
-                                      onSurface: Color(0xFF111827),
-                                    ),
-                                    textButtonTheme: TextButtonThemeData(
-                                      style: TextButton.styleFrom(
-                                        foregroundColor: const Color(0xFF7B39FD),
-                                      ),
-                                    ),
-                                  ),
-                                  child: child!,
-                                );
-                              },
-                            );
-                            if (picked != null) {
-                              selectedDate.value = picked;
-                            }
-                          },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF3F4F6),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.calendar_today_rounded, color: Color(0xFF7B39FD), size: 18),
-                          const SizedBox(width: 10),
-                          Text(
-                            DateFormat('dd MMM yyyy').format(selectedDate.value),
-                            style: const TextStyle(color: Color(0xFF111827), fontSize: 14, fontWeight: FontWeight.w500),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Notes',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
-                  ),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: notesController,
-                    enabled: !isLoading,
-                    decoration: InputDecoration(
-                      hintText: 'e.g. Initial investment',
-                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
-                      filled: true,
-                      fillColor: const Color(0xFFF3F4F6),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: isLoading ? null : () => Navigator.pop(context),
-                        child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
-                      ),
-                      const SizedBox(width: 12),
-                      ElevatedButton(
-                        onPressed: isLoading
-                            ? null
-                            : () async {
-                                final amount = double.tryParse(amountController.text);
-                                if (titleController.text.isNotEmpty && amount != null) {
-                                  final success = await controller.updateTransaction(
-                                    id: transaction.id,
-                                    title: titleController.text,
-                                    amount: amount,
-                                    categoryId: selectedCategory,
-                                    notes: notesController.text,
-                                    customDate: selectedDate.value,
-                                  );
-                                  if (success && context.mounted) {
-                                    Navigator.pop(context);
-                                  }
-                                }
-                              },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF7B39FD),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                          elevation: 0,
-                        ),
-                        child: isLoading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                ),
-                              )
-                            : const Text('Update', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      }),
-    );
-  }
 
   void _showDeleteConfirmation(BuildContext context, WealthController controller, String transactionId) {
     Get.dialog(
@@ -1298,6 +1076,7 @@ class WealthScreen extends StatelessWidget {
   void _showGotAmountDialog(BuildContext context, WealthController controller, WealthTransaction transaction) {
     final amountController = TextEditingController();
     final notesController = TextEditingController();
+    final Rx<DateTime> selectedDate = DateTime.now().obs;
 
     Get.dialog(
       Obx(() {
@@ -1357,6 +1136,56 @@ class WealthScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   const Text(
+                    'Date',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
+                  ),
+                  const SizedBox(height: 6),
+                  GestureDetector(
+                    onTap: isLoading
+                        ? null
+                        : () async {
+                            final DateTime? picked = await showDatePicker(
+                              context: context,
+                              initialDate: selectedDate.value,
+                              firstDate: DateTime(2000),
+                              lastDate: DateTime(2100),
+                              builder: (context, child) {
+                                return Theme(
+                                  data: Theme.of(context).copyWith(
+                                    colorScheme: const ColorScheme.light(
+                                      primary: Color(0xFF10B981),
+                                      onPrimary: Colors.white,
+                                      onSurface: Color(0xFF111827),
+                                    ),
+                                  ),
+                                  child: child!,
+                                );
+                              },
+                            );
+                            if (picked != null) {
+                              selectedDate.value = picked;
+                            }
+                          },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3F4F6),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            DateFormat('MMM dd, yyyy').format(selectedDate.value),
+                            style: const TextStyle(color: Color(0xFF111827), fontSize: 14, fontWeight: FontWeight.w500),
+                          ),
+                          const Icon(Icons.calendar_today_rounded, color: Color(0xFF6B7280), size: 18),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
                     'Note',
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
                   ),
@@ -1391,6 +1220,7 @@ class WealthScreen extends StatelessWidget {
                                   final success = await controller.addGotAmount(
                                     transaction.id,
                                     addAmount,
+                                    selectedDate.value,
                                     notesController.text,
                                   );
                                   if (success && context.mounted) {
@@ -1423,6 +1253,272 @@ class WealthScreen extends StatelessWidget {
           ),
         );
       }),
+    );
+  }
+
+  void _showInvestExtraDialog(BuildContext context, WealthController controller, WealthTransaction transaction) {
+    final amountController = TextEditingController();
+    final notesController = TextEditingController(text: 'invest');
+    final Rx<DateTime> selectedDate = DateTime.now().obs;
+
+    Get.dialog(
+      Obx(() {
+        final isLoading = controller.isLoading.value;
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          backgroundColor: Colors.white,
+          child: SingleChildScrollView(
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF7B39FD).withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.add_circle_outline_rounded, color: Color(0xFF7B39FD), size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Invest Extra Amount',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Current Invested: ৳${transaction.totalInvested.toStringAsFixed(2)}',
+                    style: const TextStyle(fontSize: 14, color: Color(0xFF4B5563)),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Amount to Invest',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: amountController,
+                    enabled: !isLoading,
+                    decoration: InputDecoration(
+                      hintText: '0.00',
+                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+                      prefixText: '৳ ',
+                      prefixStyle: const TextStyle(color: Color(0xFF111827), fontWeight: FontWeight.w600),
+                      filled: true,
+                      fillColor: const Color(0xFFF3F4F6),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Date',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
+                  ),
+                  const SizedBox(height: 6),
+                  GestureDetector(
+                    onTap: isLoading
+                        ? null
+                        : () async {
+                            final DateTime? picked = await showDatePicker(
+                              context: context,
+                              initialDate: selectedDate.value,
+                              firstDate: DateTime(2000),
+                              lastDate: DateTime(2100),
+                              builder: (context, child) {
+                                return Theme(
+                                  data: Theme.of(context).copyWith(
+                                    colorScheme: const ColorScheme.light(
+                                      primary: Color(0xFF7B39FD),
+                                      onPrimary: Colors.white,
+                                      onSurface: Color(0xFF111827),
+                                    ),
+                                  ),
+                                  child: child!,
+                                );
+                              },
+                            );
+                            if (picked != null) {
+                              selectedDate.value = picked;
+                            }
+                          },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3F4F6),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            DateFormat('MMM dd, yyyy').format(selectedDate.value),
+                            style: const TextStyle(color: Color(0xFF111827), fontSize: 14, fontWeight: FontWeight.w500),
+                          ),
+                          const Icon(Icons.calendar_today_rounded, color: Color(0xFF6B7280), size: 18),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Note',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: notesController,
+                    enabled: !isLoading,
+                    decoration: InputDecoration(
+                      hintText: 'e.g. invest',
+                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+                      filled: true,
+                      fillColor: const Color(0xFFF3F4F6),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: isLoading ? null : () => Navigator.pop(context),
+                        child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        onPressed: isLoading
+                            ? null
+                            : () async {
+                                final investAmount = double.tryParse(amountController.text) ?? 0.0;
+                                if (investAmount > 0) {
+                                  final success = await controller.investExtraAmount(
+                                    transaction.id,
+                                    investAmount,
+                                    selectedDate.value,
+                                    notesController.text,
+                                  );
+                                  if (success && context.mounted) {
+                                    Navigator.pop(context);
+                                  }
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF7B39FD),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          elevation: 0,
+                        ),
+                        child: isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : const Text('Invest', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildShimmerList() {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      itemCount: 5,
+      itemBuilder: (context, index) {
+        return Shimmer.fromColors(
+          baseColor: const Color(0xFFE5E7EB),
+          highlightColor: const Color(0xFFF3F4F6),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.only(left: 12, top: 10, bottom: 10, right: 4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 120,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        width: 80,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Container(
+                      width: 60,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      width: 40,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 24),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

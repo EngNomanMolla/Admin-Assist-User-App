@@ -37,4 +37,13 @@ class WealthProvider extends ApiProvider {
 
   Future<http.Response> addGotAmountHistory(String transactionId, Map<String, dynamic> data) =>
       postRequest('/asset_transactions/$transactionId/add-history', data);
+
+  Future<http.Response> getAssetTransactionHistory(String transactionId) =>
+      getRequest('/asset_transactions/$transactionId/history');
+
+  Future<http.Response> updateAssetTransactionHistory(String transactionId, String historyId, Map<String, dynamic> data) =>
+      putRequest('/asset_transactions/$transactionId/history/$historyId', data);
+
+  Future<http.Response> deleteAssetTransactionHistory(String transactionId, String historyId) =>
+      deleteRequest('/asset_transactions/$transactionId/history/$historyId', {});
 }

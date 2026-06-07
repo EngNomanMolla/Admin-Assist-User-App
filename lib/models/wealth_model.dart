@@ -23,16 +23,28 @@ class WealthUpdate {
   final String id;
   final double amount;
   final DateTime date;
+  final String type;
+  final String notes;
 
-  WealthUpdate({required this.id, required this.amount, required this.date});
+  WealthUpdate({
+    required this.id,
+    required this.amount,
+    required this.date,
+    this.type = 'return',
+    this.notes = '',
+  });
 
   factory WealthUpdate.fromMap(Map<String, dynamic> map) {
     return WealthUpdate(
       id: map['id']?.toString() ?? '',
       amount: double.tryParse(map['amount']?.toString() ?? '0') ?? 0.0,
-      date: map['date'] != null 
-          ? DateTime.parse(map['date']) 
-          : (map['created_at'] != null ? DateTime.parse(map['created_at']) : DateTime.now()),
+      date: map['transaction_date'] != null
+          ? DateTime.parse(map['transaction_date'])
+          : (map['date'] != null 
+              ? DateTime.parse(map['date']) 
+              : (map['created_at'] != null ? DateTime.parse(map['created_at']) : DateTime.now())),
+      type: map['type']?.toString() ?? 'return',
+      notes: map['notes']?.toString() ?? '',
     );
   }
 
@@ -41,6 +53,8 @@ class WealthUpdate {
       'id': id,
       'amount': amount,
       'date': date.toIso8601String(),
+      'type': type,
+      'notes': notes,
     };
   }
 }

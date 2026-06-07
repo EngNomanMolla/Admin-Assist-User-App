@@ -18,6 +18,9 @@ class WealthController extends GetxController {
   final RxBool hasMore = true.obs;
   final RxBool isLoadingMore = false.obs;
   bool _isTransactionsFetching = false;
+  var historyRecords = <WealthUpdate>[].obs;
+  var historySummary = Rxn<Map<String, dynamic>>();
+  var isLoadingHistory = false.obs;
 
   @override
   void onInit() {
@@ -326,10 +329,10 @@ class WealthController extends GetxController {
     }
   }
 
-  Future<bool> addGotAmount(String transactionId, double amount, String notes) async {
+  Future<bool> addGotAmount(String transactionId, double amount, DateTime date, String notes) async {
     try {
       isLoading.value = true;
-      final dateStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
+      final dateStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(date);
       final response = await _wealthProvider.addGotAmountHistory(transactionId, {
         'type': 'return',
         'amount': amount,
@@ -401,5 +404,145 @@ class WealthController extends GetxController {
     if (categoryId == 'all') return 'All';
     final category = categories.firstWhere((c) => c.id == categoryId, orElse: () => WealthCategory(id: 'unknown', name: 'Unknown'));
     return category.name;
+  }
+
+  Future<void> fetchTransactionHistory(String transactionId) async {
+    try {
+      isLoadingHistory.value = true;
+      final response = await _wealthProvider.getAssetTransactionHistory(transactionId);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        
+        // Parse transaction_history
+        List<dynamic> historyList = [];
+        if (data['transaction_history'] != null) {
+          historyList = data['transaction_history'];
+        } else if (data['asset_transaction'] != null && data['asset_transaction']['records'] != null) {
+          historyList = data['asset_transaction']['records'];
+        }
+        
+        final parsedHistory = historyList.map((e) {
+          if (e is Map) {
+            return WealthUpdate.fromMap(Map<String, dynamic>.from(e));
+          }
+          return WealthUpdate(id: '', amount: 0.0, date: DateTime.now());
+        }).where((h) => h.id.isNotEmpty).toList();
+        
+        historyRecords.assignAll(parsedHistory);
+        
+        // Parse summary
+        if (data['summary'] != null) {
+          historySummary.value = Map<String, dynamic>.from(data['summary']);
+        }
+      }
+    } catch (e) {
+      print("Error fetching transaction history: $e");
+    } finally {
+      isLoadingHistory.value = false;
+    }
+  }
+
+  Future<bool> updateHistoryRecord({
+    required String transactionId,
+    required String historyId,
+    required double amount,
+    required String notes,
+    required DateTime date,
+    required String type,
+  }) async {
+    try {
+      isLoading.value = true;
+      final dateStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(date);
+      final payload = {
+        'amount': amount,
+        'notes': notes,
+        'transaction_date': dateStr,
+        'type': type,
+      };
+
+      final response = await _wealthProvider.updateAssetTransactionHistory(transactionId, historyId, payload);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        await fetchTransactionHistory(transactionId);
+        await fetchAssetTrackerData();
+        Get.snackbar("Success", "History record updated successfully",
+            backgroundColor: const Color(0xFF7B39FD).withOpacity(0.9), colorText: Colors.white);
+        return true;
+      } else {
+        final errorData = jsonDecode(response.body);
+        Get.snackbar("Error", errorData['message'] ?? "Failed to update history record",
+            backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+        return false;
+      }
+    } catch (e) {
+      print("Error updating history record: $e");
+      Get.snackbar("Error", "Network error occurred",
+          backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<bool> deleteHistoryRecord({
+    required String transactionId,
+    required String historyId,
+  }) async {
+    try {
+      isLoading.value = true;
+      final response = await _wealthProvider.deleteAssetTransactionHistory(transactionId, historyId);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        await fetchTransactionHistory(transactionId);
+        await fetchAssetTrackerData();
+        Get.snackbar("Success", "History record deleted successfully",
+            backgroundColor: const Color(0xFF7B39FD).withOpacity(0.9), colorText: Colors.white);
+        return true;
+      } else {
+        final errorData = jsonDecode(response.body);
+        Get.snackbar("Error", errorData['message'] ?? "Failed to delete history record",
+            backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+        return false;
+      }
+    } catch (e) {
+      print("Error deleting history record: $e");
+      Get.snackbar("Error", "Network error occurred",
+          backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<bool> investExtraAmount(String transactionId, double amount, DateTime date, String notes) async {
+    try {
+      isLoading.value = true;
+      final dateStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(date);
+      final response = await _wealthProvider.addGotAmountHistory(transactionId, {
+        'type': 'invest',
+        'amount': amount,
+        'transaction_date': dateStr,
+        'notes': notes,
+      });
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        await fetchAssetTrackerData();
+        Get.snackbar("Success", "Additional investment recorded successfully",
+            backgroundColor: const Color(0xFF7B39FD).withOpacity(0.9), colorText: Colors.white);
+        return true;
+      } else {
+        final errorData = jsonDecode(response.body);
+        Get.snackbar("Error", errorData['message'] ?? "Failed to add investment",
+            backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+        return false;
+      }
+    } catch (e) {
+      print("Error adding investment: $e");
+      Get.snackbar("Error", "Network error occurred",
+          backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
   }
 }
