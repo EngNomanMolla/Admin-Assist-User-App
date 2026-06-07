@@ -181,32 +181,36 @@ class FinancePlannerScreen extends StatelessWidget {
                       title: 'Income',
                       icon: Icons.trending_up_rounded,
                       color: const Color(0xFF10B981),
-                      onTap: () {
-                        Get.to(() => const IncomeScreen());
+                      onTap: () async {
+                        await Get.to(() => const IncomeScreen());
+                        hubController.fetchPersonalFinanceHubData();
                       },
                     ),
                     _buildFinanceCard(
                       title: 'Expense',
                       icon: Icons.trending_down_rounded,
                       color: const Color(0xFFEF4444),
-                      onTap: () {
-                        Get.to(() => const ExpenseScreen());
+                      onTap: () async {
+                        await Get.to(() => const ExpenseScreen());
+                        hubController.fetchPersonalFinanceHubData();
                       },
                     ),
                     _buildFinanceCard(
                       title: 'Liability', // Renamed from Debt
                       icon: Icons.money_off_rounded,
                       color: const Color(0xFFF59E0B),
-                      onTap: () {
-                        Get.to(() => const DebtScreen());
+                      onTap: () async {
+                        await Get.to(() => const DebtScreen());
+                        hubController.fetchPersonalFinanceHubData();
                       },
                     ),
                     _buildFinanceCard(
                       title: 'Asset', // Renamed from Wealth
                       icon: Icons.account_balance_rounded,
                       color: const Color(0xFF7B39FD),
-                      onTap: () {
-                        Get.to(() => const WealthScreen());
+                      onTap: () async {
+                        await Get.to(() => const WealthScreen());
+                        hubController.fetchPersonalFinanceHubData();
                       },
                     ),
                   ],
