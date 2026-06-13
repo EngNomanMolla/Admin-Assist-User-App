@@ -16,6 +16,9 @@ class DebtController extends GetxController {
   final RxBool isLoadingMore = false.obs;
   final RxDouble serverTotalDebt = 0.0.obs;
   bool _isTransactionsFetching = false;
+  var historyRecords = <DebtPayment>[].obs;
+  var historySummary = Rxn<Map<String, dynamic>>();
+  var isLoadingHistory = false.obs;
 
   @override
   void onInit() {
@@ -297,16 +300,16 @@ class DebtController extends GetxController {
     }
   }
 
-  Future<bool> payDebt(String transactionId, double amount) async {
+  Future<bool> payDebt(String transactionId, double amount, DateTime date, {String notes = "Repayment of loan"}) async {
     try {
       isLoading.value = true;
-      final now = DateTime.now();
-      final formattedDate = "${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
+      final formattedDate = DateFormat('yyyy-MM-dd HH:mm:ss').format(date);
       
-      final response = await _liabilityProvider.addLiabilityPayment(transactionId, {
+      final response = await _liabilityProvider.addLiabilityHistory(transactionId, {
+        'type': 'pay',
         'amount': amount,
         'payment_date': formattedDate,
-        'status': 'paid',
+        'notes': notes,
       });
       if (response.statusCode >= 200 && response.statusCode < 300) {
         await fetchTransactions();
@@ -329,10 +332,43 @@ class DebtController extends GetxController {
     }
   }
 
-  Future<void> fetchPaymentHistory(String transactionId) async {
+  Future<bool> takeExtraLiability(String transactionId, double amount, DateTime date, String notes) async {
     try {
       isLoading.value = true;
-      final response = await _liabilityProvider.getLiabilityPaymentHistory(transactionId);
+      final formattedDate = DateFormat('yyyy-MM-dd HH:mm:ss').format(date);
+      
+      final response = await _liabilityProvider.addLiabilityHistory(transactionId, {
+        'type': 'borrow',
+        'amount': amount,
+        'payment_date': formattedDate,
+        'notes': notes,
+      });
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        await fetchTransactions();
+        Get.snackbar("Success", "Extra liability recorded successfully",
+            backgroundColor: const Color(0xFFF59E0B).withOpacity(0.9), colorText: Colors.white);
+        return true;
+      } else {
+        final errorData = jsonDecode(response.body);
+        Get.snackbar("Error", errorData['message'] ?? "Failed to take extra liability",
+            backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+        return false;
+      }
+    } catch (e) {
+      print("Error taking extra liability: $e");
+      Get.snackbar("Error", "Network error occurred",
+          backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> fetchPaymentHistory(String transactionId) async {
+    try {
+      isLoadingHistory.value = true;
+      final response = await _liabilityProvider.getLiabilityHistory(transactionId);
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         List<dynamic> historyList = [];
@@ -342,15 +378,25 @@ class DebtController extends GetxController {
           historyList = data['liability_transaction']['records'];
         }
 
-        final payments = historyList.map((e) => DebtPayment.fromMap(e)).toList();
+        final payments = historyList.map((e) => DebtPayment.fromMap(Map<String, dynamic>.from(e))).toList();
         
+        historyRecords.assignAll(payments);
+        
+        if (data['summary'] != null) {
+          historySummary.value = Map<String, dynamic>.from(data['summary']);
+        }
+
         final index = transactions.indexWhere((t) => t.id == transactionId);
         if (index != -1) {
           final transaction = transactions[index];
+          final double totalAmount = data['summary'] != null
+              ? (double.tryParse(data['summary']['total_amount']?.toString() ?? '') ?? transaction.amount)
+              : transaction.amount;
+              
           transactions[index] = DebtTransaction(
             id: transaction.id,
             title: transaction.title,
-            amount: transaction.amount,
+            amount: totalAmount,
             categoryId: transaction.categoryId,
             date: transaction.date,
             payments: payments,
@@ -360,9 +406,82 @@ class DebtController extends GetxController {
     } catch (e) {
       print("Error fetching payment history: $e");
     } finally {
+      isLoadingHistory.value = false;
+    }
+  }
+
+  Future<bool> updateHistoryRecord({
+    required String transactionId,
+    required String historyId,
+    required double amount,
+    required String notes,
+    required DateTime date,
+    required String type,
+  }) async {
+    try {
+      isLoading.value = true;
+      final dateStr = DateFormat('yyyy-MM-dd HH:mm:ss').format(date);
+      final payload = {
+        'amount': amount,
+        'notes': notes,
+        'payment_date': dateStr,
+        'type': type,
+      };
+
+      final response = await _liabilityProvider.updateLiabilityHistory(transactionId, historyId, payload);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        await fetchPaymentHistory(transactionId);
+        await fetchTransactions();
+        Get.snackbar("Success", "History record updated successfully",
+            backgroundColor: const Color(0xFFF59E0B).withOpacity(0.9), colorText: Colors.white);
+        return true;
+      } else {
+        final errorData = jsonDecode(response.body);
+        Get.snackbar("Error", errorData['message'] ?? "Failed to update history record",
+            backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+        return false;
+      }
+    } catch (e) {
+      print("Error updating history record: $e");
+      Get.snackbar("Error", "Network error occurred",
+          backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+      return false;
+    } finally {
       isLoading.value = false;
     }
   }
+
+  Future<bool> deleteHistoryRecord({
+    required String transactionId,
+    required String historyId,
+  }) async {
+    try {
+      isLoading.value = true;
+      final response = await _liabilityProvider.deleteLiabilityHistory(transactionId, historyId);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        await fetchPaymentHistory(transactionId);
+        await fetchTransactions();
+        Get.snackbar("Success", "History record deleted successfully",
+            backgroundColor: const Color(0xFFF59E0B).withOpacity(0.9), colorText: Colors.white);
+        return true;
+      } else {
+        final errorData = jsonDecode(response.body);
+        Get.snackbar("Error", errorData['message'] ?? "Failed to delete history record",
+            backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+        return false;
+      }
+    } catch (e) {
+      print("Error deleting history record: $e");
+      Get.snackbar("Error", "Network error occurred",
+          backgroundColor: Colors.red.withOpacity(0.8), colorText: Colors.white);
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
 
   Future<bool> deleteTransaction(String id) async {
     try {

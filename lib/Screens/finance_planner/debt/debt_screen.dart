@@ -393,12 +393,12 @@ class DebtScreen extends StatelessWidget {
                       icon: const Icon(Icons.more_vert, color: Color(0xFF6B7280), size: 20),
                       padding: EdgeInsets.zero,
                       onSelected: (val) {
-                        if (val == 'edit') {
-                          _showUpdateTransactionDialog(context, controller, transaction);
-                        } else if (val == 'delete') {
+                        if (val == 'delete') {
                           _showDeleteConfirmation(context, controller, transaction.id);
                         } else if (val == 'pay') {
                           _showPayDebtDialog(context, controller, transaction);
+                        } else if (val == 'take_extra') {
+                          _showTakeExtraLiabilityDialog(context, controller, transaction);
                         }
                       },
                       itemBuilder: (context) => [
@@ -413,12 +413,12 @@ class DebtScreen extends StatelessWidget {
                           ),
                         ),
                         const PopupMenuItem(
-                          value: 'edit',
+                          value: 'take_extra',
                           child: Row(
                             children: [
-                              Icon(Icons.edit_rounded, color: Color(0xFF6B7280), size: 18),
+                              Icon(Icons.add_circle_outline_rounded, color: Color(0xFFF59E0B), size: 18),
                               SizedBox(width: 8),
-                              Text('Edit'),
+                              Text('Take Extra Liability'),
                             ],
                           ),
                         ),
@@ -563,108 +563,350 @@ class DebtScreen extends StatelessWidget {
 
   void _showPayDebtDialog(BuildContext context, DebtController controller, DebtTransaction transaction) {
     final amountController = TextEditingController();
+    final selectedDate = DateTime.now().obs;
+
     Get.dialog(
-      Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        backgroundColor: Colors.white,
-        child: SingleChildScrollView(
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF10B981).withOpacity(0.1),
-                        shape: BoxShape.circle,
+      Obx(() {
+        final isLoading = controller.isLoading.value;
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          backgroundColor: Colors.white,
+          child: SingleChildScrollView(
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981).withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.payment_rounded, color: Color(0xFF10B981), size: 20),
                       ),
-                      child: const Icon(Icons.payment_rounded, color: Color(0xFF10B981), size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'Pay Liability',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'Remaining Liability: ৳${transaction.remainingAmount.toStringAsFixed(2)}',
-                  style: const TextStyle(fontSize: 14, color: Color(0xFF4B5563)),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Amount to Pay',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
-                ),
-                const SizedBox(height: 6),
-                Obx(() => TextField(
-                  controller: amountController,
-                  enabled: !controller.isLoading.value,
-                  decoration: InputDecoration(
-                    hintText: '0.00',
-                    hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
-                    prefixText: '৳ ',
-                    prefixStyle: const TextStyle(color: Color(0xFF111827), fontWeight: FontWeight.w600),
-                    filled: true,
-                    fillColor: const Color(0xFFF3F4F6),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Pay Liability',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
+                      ),
+                    ],
                   ),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                )),
-                const SizedBox(height: 24),
-                Obx(() => Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: controller.isLoading.value ? null : () => Navigator.pop(context),
-                      child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Remaining Liability: ৳${transaction.remainingAmount.toStringAsFixed(2)}',
+                    style: const TextStyle(fontSize: 14, color: Color(0xFF4B5563)),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Amount to Pay',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: amountController,
+                    enabled: !isLoading,
+                    decoration: InputDecoration(
+                      hintText: '0.00',
+                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+                      prefixText: '৳ ',
+                      prefixStyle: const TextStyle(color: Color(0xFF111827), fontWeight: FontWeight.w600),
+                      filled: true,
+                      fillColor: const Color(0xFFF3F4F6),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     ),
-                    const SizedBox(width: 12),
-                    ElevatedButton(
-                      onPressed: controller.isLoading.value ? null : () async {
-                        final payAmount = double.tryParse(amountController.text) ?? 0.0;
-                        if (payAmount > 0) {
-                          if (payAmount > transaction.remainingAmount) {
-                            Get.snackbar("Notice", "Payment amount cannot exceed remaining debt", 
-                              snackPosition: SnackPosition.BOTTOM);
-                            return;
-                          }
-                          final success = await controller.payDebt(transaction.id, payAmount);
-                          if (success && context.mounted) {
-                            Navigator.pop(context);
-                          }
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF10B981),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        elevation: 0,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Payment Date',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
+                  ),
+                  const SizedBox(height: 6),
+                  GestureDetector(
+                    onTap: isLoading
+                        ? null
+                        : () async {
+                            final DateTime? picked = await showDatePicker(
+                              context: context,
+                              initialDate: selectedDate.value,
+                              firstDate: DateTime(2000),
+                              lastDate: DateTime(2101),
+                              builder: (context, child) {
+                                return Theme(
+                                  data: Theme.of(context).copyWith(
+                                    colorScheme: const ColorScheme.light(
+                                      primary: Color(0xFFF59E0B),
+                                      onPrimary: Colors.white,
+                                      onSurface: Color(0xFF111827),
+                                    ),
+                                    textButtonTheme: TextButtonThemeData(
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: const Color(0xFFF59E0B),
+                                      ),
+                                    ),
+                                  ),
+                                  child: child!,
+                                );
+                              },
+                            );
+                            if (picked != null) {
+                              selectedDate.value = picked;
+                            }
+                          },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3F4F6),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      child: controller.isLoading.value
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : const Text('Pay', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.calendar_today_rounded, color: Color(0xFFF59E0B), size: 18),
+                          const SizedBox(width: 10),
+                          Text(
+                            DateFormat('dd MMM yyyy').format(selectedDate.value),
+                            style: const TextStyle(color: Color(0xFF111827), fontSize: 14, fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
-                )),
-              ],
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: isLoading ? null : () => Navigator.pop(context),
+                        child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        onPressed: isLoading ? null : () async {
+                          final payAmount = double.tryParse(amountController.text) ?? 0.0;
+                          if (payAmount > 0) {
+                            if (payAmount > transaction.remainingAmount) {
+                              Get.snackbar("Notice", "Payment amount cannot exceed remaining debt", 
+                                snackPosition: SnackPosition.BOTTOM);
+                              return;
+                            }
+                            final success = await controller.payDebt(transaction.id, payAmount, selectedDate.value);
+                            if (success && context.mounted) {
+                              Navigator.pop(context);
+                            }
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          elevation: 0,
+                        ),
+                        child: isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text('Pay', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      }),
+    );
+  }
+
+  void _showTakeExtraLiabilityDialog(BuildContext context, DebtController controller, DebtTransaction transaction) {
+    final amountController = TextEditingController();
+    final notesController = TextEditingController(text: 'borrow');
+    final selectedDate = DateTime.now().obs;
+
+    Get.dialog(
+      Obx(() {
+        final isLoading = controller.isLoading.value;
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          backgroundColor: Colors.white,
+          child: SingleChildScrollView(
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF59E0B).withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.add_circle_outline_rounded, color: Color(0xFFF59E0B), size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Take Extra Liability',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Amount to Take',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: amountController,
+                    enabled: !isLoading,
+                    decoration: InputDecoration(
+                      hintText: '0.00',
+                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+                      prefixText: '৳ ',
+                      prefixStyle: const TextStyle(color: Color(0xFF111827), fontWeight: FontWeight.w600),
+                      filled: true,
+                      fillColor: const Color(0xFFF3F4F6),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Date',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
+                  ),
+                  const SizedBox(height: 6),
+                  GestureDetector(
+                    onTap: isLoading
+                        ? null
+                        : () async {
+                            final DateTime? picked = await showDatePicker(
+                              context: context,
+                              initialDate: selectedDate.value,
+                              firstDate: DateTime(2000),
+                              lastDate: DateTime(2101),
+                              builder: (context, child) {
+                                return Theme(
+                                  data: Theme.of(context).copyWith(
+                                    colorScheme: const ColorScheme.light(
+                                      primary: Color(0xFFF59E0B),
+                                      onPrimary: Colors.white,
+                                      onSurface: Color(0xFF111827),
+                                    ),
+                                    textButtonTheme: TextButtonThemeData(
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: const Color(0xFFF59E0B),
+                                      ),
+                                    ),
+                                  ),
+                                  child: child!,
+                                );
+                              },
+                            );
+                            if (picked != null) {
+                              selectedDate.value = picked;
+                            }
+                          },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3F4F6),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.calendar_today_rounded, color: Color(0xFFF59E0B), size: 18),
+                          const SizedBox(width: 10),
+                          Text(
+                            DateFormat('dd MMM yyyy').format(selectedDate.value),
+                            style: const TextStyle(color: Color(0xFF111827), fontSize: 14, fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Notes',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: notesController,
+                    enabled: !isLoading,
+                    decoration: InputDecoration(
+                      hintText: 'e.g. Borrowed more loan',
+                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+                      filled: true,
+                      fillColor: const Color(0xFFF3F4F6),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: isLoading ? null : () => Navigator.pop(context),
+                        child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        onPressed: isLoading ? null : () async {
+                          final amount = double.tryParse(amountController.text);
+                          if (amount != null && amount > 0) {
+                            final notes = notesController.text.isNotEmpty ? notesController.text : 'borrow';
+                            final success = await controller.takeExtraLiability(
+                              transaction.id,
+                              amount,
+                              selectedDate.value,
+                              notes,
+                            );
+                            if (success && context.mounted) {
+                              Navigator.pop(context);
+                            }
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFF59E0B),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          elevation: 0,
+                        ),
+                        child: isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text('Take', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }),
     );
   }
 
@@ -1085,210 +1327,6 @@ class DebtScreen extends StatelessWidget {
                                 ),
                               )
                             : const Text('Add Liability', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      }),
-    );
-  }
-
-  void _showUpdateTransactionDialog(BuildContext context, DebtController controller, DebtTransaction transaction) {
-    final titleController = TextEditingController(text: transaction.title);
-    final amountController = TextEditingController(text: transaction.amount.toString());
-    String selectedCategory = transaction.categoryId;
-    final selectedDate = (transaction.date).obs;
-
-    Get.dialog(
-      Obx(() {
-        final isLoading = controller.isLoading.value;
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          backgroundColor: Colors.white,
-          child: SingleChildScrollView(
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF59E0B).withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.edit_rounded, color: Color(0xFFF59E0B), size: 20),
-                      ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'Update Liability',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF111827)),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Title',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
-                  ),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: titleController,
-                    enabled: !isLoading,
-                    decoration: InputDecoration(
-                      hintText: 'e.g. Loan, Mortgage',
-                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
-                      filled: true,
-                      fillColor: const Color(0xFFF3F4F6),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Amount',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
-                  ),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: amountController,
-                    enabled: !isLoading,
-                    decoration: InputDecoration(
-                      hintText: '0.00',
-                      hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
-                      prefixText: '৳ ',
-                      prefixStyle: const TextStyle(color: Color(0xFF111827), fontWeight: FontWeight.w600),
-                      filled: true,
-                      fillColor: const Color(0xFFF3F4F6),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    ),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Category',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
-                  ),
-                  const SizedBox(height: 6),
-                  DropdownButtonFormField<String>(
-                    value: selectedCategory,
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: const Color(0xFFF3F4F6),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    ),
-                    items: controller.categories.map((c) {
-                      return DropdownMenuItem(value: c.id, child: Text(c.name));
-                    }).toList(),
-                    onChanged: isLoading ? null : (val) {
-                      selectedCategory = val ?? 'all';
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Date',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
-                  ),
-                  const SizedBox(height: 6),
-                  GestureDetector(
-                    onTap: isLoading
-                        ? null
-                        : () async {
-                            final DateTime? picked = await showDatePicker(
-                              context: context,
-                              initialDate: selectedDate.value,
-                              firstDate: DateTime(2000),
-                              lastDate: DateTime(2101),
-                              builder: (context, child) {
-                                return Theme(
-                                  data: Theme.of(context).copyWith(
-                                    colorScheme: const ColorScheme.light(
-                                      primary: Color(0xFFF59E0B),
-                                      onPrimary: Colors.white,
-                                      onSurface: Color(0xFF111827),
-                                    ),
-                                    textButtonTheme: TextButtonThemeData(
-                                      style: TextButton.styleFrom(
-                                        foregroundColor: const Color(0xFFF59E0B),
-                                      ),
-                                    ),
-                                  ),
-                                  child: child!,
-                                );
-                              },
-                            );
-                            if (picked != null) {
-                              selectedDate.value = picked;
-                            }
-                          },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF3F4F6),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.calendar_today_rounded, color: Color(0xFFF59E0B), size: 18),
-                          const SizedBox(width: 10),
-                          Text(
-                            DateFormat('dd MMM yyyy').format(selectedDate.value),
-                            style: const TextStyle(color: Color(0xFF111827), fontSize: 14, fontWeight: FontWeight.w500),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: isLoading ? null : () => Navigator.pop(context),
-                        child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
-                      ),
-                      const SizedBox(width: 12),
-                      ElevatedButton(
-                        onPressed: isLoading ? null : () async {
-                          final amount = double.tryParse(amountController.text);
-                          if (titleController.text.isNotEmpty && amount != null) {
-                            final success = await controller.updateTransaction(
-                              id: transaction.id,
-                              title: titleController.text,
-                              amount: amount,
-                              categoryId: selectedCategory,
-                              customDate: selectedDate.value,
-                            );
-                            if (success && context.mounted) {
-                              Navigator.pop(context);
-                            }
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFF59E0B),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                          elevation: 0,
-                        ),
-                        child: isLoading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Text('Update', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
                       ),
                     ],
                   ),

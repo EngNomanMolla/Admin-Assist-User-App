@@ -32,21 +32,9 @@ class JoinCommunityScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final List<Map<String, dynamic>> socialLinks = [
       {
-        'name': 'Official Website',
-        'subtitle': 'Explore our platform and features',
-        'url': 'https://mentorassist.online',
-        'icon': Icons.public_rounded,
-        'color': const Color(0xFF7B39FD),
-        'bgGradient': const LinearGradient(
-          colors: [Color(0xFF7B39FD), Color(0xFF9E6CFF)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      },
-      {
-        'name': 'Facebook Community',
-        'subtitle': 'Join our active Facebook group & page',
-        'url': 'https://www.facebook.com/mentorassist',
+        'name': 'Facebook Page',
+        'subtitle': 'Follow our official page for updates',
+        'url': 'https://www.facebook.com/share/18emamTb1J/',
         'icon': Icons.facebook_rounded,
         'color': const Color(0xFF1877F2),
         'bgGradient': const LinearGradient(
@@ -56,9 +44,33 @@ class JoinCommunityScreen extends StatelessWidget {
         ),
       },
       {
+        'name': 'Facebook Group',
+        'subtitle': 'Join our active community discussions',
+        'url': 'https://www.facebook.com/groups/1398610154892702/?ref=share&mibextid=NSMWBT',
+        'icon': Icons.groups_rounded,
+        'color': const Color(0xFF1877F2),
+        'bgGradient': const LinearGradient(
+          colors: [Color(0xFF1F92F4), Color(0xFF6AB6FC)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      },
+      {
+        'name': 'Telegram Group',
+        'subtitle': 'Get instant updates and support',
+        'url': 'https://t.me/+xQfC_OK4DZIwZTQ1',
+        'icon': Icons.send_rounded,
+        'color': const Color(0xFF0088CC),
+        'bgGradient': const LinearGradient(
+          colors: [Color(0xFF0088CC), Color(0xFF2CA5E0)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      },
+      {
         'name': 'YouTube Channel',
         'subtitle': 'Watch tutorials and masterclasses',
-        'url': 'https://www.youtube.com/@mentorassist',
+        'url': 'https://youtube.com/@mentorassist?si=rx1pqqHgeT_8k0XD',
         'icon': Icons.play_circle_fill_rounded,
         'color': const Color(0xFFFF0000),
         'bgGradient': const LinearGradient(
@@ -68,49 +80,13 @@ class JoinCommunityScreen extends StatelessWidget {
         ),
       },
       {
-        'name': 'LinkedIn Network',
-        'subtitle': 'Connect with professionals & mentors',
-        'url': 'https://www.linkedin.com/company/mentorassist',
-        'icon': Icons.business_center_rounded,
-        'color': const Color(0xFF0A66C2),
+        'name': 'Website Link',
+        'subtitle': 'Explore our platform and features',
+        'url': 'https://mentorassist.online',
+        'icon': Icons.public_rounded,
+        'color': const Color(0xFF7B39FD),
         'bgGradient': const LinearGradient(
-          colors: [Color(0xFF0A66C2), Color(0xFF358FE6)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      },
-      {
-        'name': 'X / Twitter',
-        'subtitle': 'Get quick updates and industry news',
-        'url': 'https://x.com/mentorassist',
-        'icon': Icons.close_rounded,
-        'color': const Color(0xFF0F1419),
-        'bgGradient': const LinearGradient(
-          colors: [Color(0xFF0F1419), Color(0xFF333333)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      },
-      {
-        'name': 'TikTok Channel',
-        'subtitle': 'Quick tips and interesting stories',
-        'url': 'https://www.tiktok.com/@mentorassist',
-        'icon': Icons.music_note_rounded,
-        'color': const Color(0xFF010101),
-        'bgGradient': const LinearGradient(
-          colors: [Color(0xFF010101), Color(0xFF25F4EE)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      },
-      {
-        'name': 'WhatsApp Group',
-        'subtitle': 'Get real-time updates and discussions',
-        'url': 'https://chat.whatsapp.com/mentorassist', // Placeholder WhatsApp group
-        'icon': Icons.chat_bubble_rounded,
-        'color': const Color(0xFF25D366),
-        'bgGradient': const LinearGradient(
-          colors: [Color(0xFF25D366), Color(0xFF4ADE80)],
+          colors: [Color(0xFF7B39FD), Color(0xFF9E6CFF)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),

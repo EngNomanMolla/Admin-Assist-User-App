@@ -34,6 +34,18 @@ class LiabilityProvider extends ApiProvider {
   Future<http.Response> addLiabilityPayment(String transactionId, Map<String, dynamic> data) =>
       postRequest('/liability_transactions/$transactionId/add-payment', data);
 
+  Future<http.Response> addLiabilityHistory(String transactionId, Map<String, dynamic> data) =>
+      postRequest('/liability_transactions/$transactionId/add-history', data);
+
   Future<http.Response> getLiabilityPaymentHistory(String transactionId) =>
       getRequest('/liability_transactions/$transactionId/payment-history');
+
+  Future<http.Response> getLiabilityHistory(String transactionId) =>
+      getRequest('/liability_transactions/$transactionId/history');
+
+  Future<http.Response> updateLiabilityHistory(String transactionId, String historyId, Map<String, dynamic> data) =>
+      putRequest('/liability_transactions/$transactionId/history/$historyId', data);
+
+  Future<http.Response> deleteLiabilityHistory(String transactionId, String historyId) =>
+      deleteRequest('/liability_transactions/$transactionId/history/$historyId', {});
 }

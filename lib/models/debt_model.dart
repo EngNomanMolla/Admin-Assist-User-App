@@ -23,14 +23,25 @@ class DebtPayment {
   final String id;
   final double amount;
   final DateTime date;
+  final String type;
+  final String notes;
 
-  DebtPayment({required this.id, required this.amount, required this.date});
+  DebtPayment({
+    required this.id,
+    required this.amount,
+    required this.date,
+    this.type = 'pay',
+    this.notes = '',
+  });
 
   factory DebtPayment.fromMap(Map<String, dynamic> map) {
+    final rawDate = map['payment_date'] ?? map['date'] ?? map['created_at'];
     return DebtPayment(
       id: map['id']?.toString() ?? '',
       amount: double.tryParse(map['amount']?.toString() ?? '0') ?? 0.0,
-      date: map['date'] != null ? DateTime.parse(map['date']) : DateTime.now(),
+      date: rawDate != null ? DateTime.parse(rawDate.toString()) : DateTime.now(),
+      type: map['type']?.toString() ?? 'pay',
+      notes: map['notes']?.toString() ?? '',
     );
   }
 
@@ -39,6 +50,8 @@ class DebtPayment {
       'id': id,
       'amount': amount,
       'date': date.toIso8601String(),
+      'type': type,
+      'notes': notes,
     };
   }
 }
@@ -46,7 +59,7 @@ class DebtPayment {
 class DebtTransaction {
   final String id;
   final String title;
-  final double amount; // Original amount
+  final double amount; // Total / Original amount
   final String categoryId;
   final DateTime date;
   final List<DebtPayment> payments;
@@ -64,13 +77,17 @@ class DebtTransaction {
     var paymentsList = <DebtPayment>[];
     if (map['payments'] != null) {
       paymentsList = (map['payments'] as List)
-          .map((e) => DebtPayment.fromMap(e))
+          .map((e) => DebtPayment.fromMap(Map<String, dynamic>.from(e)))
+          .toList();
+    } else if (map['records'] != null) {
+      paymentsList = (map['records'] as List)
+          .map((e) => DebtPayment.fromMap(Map<String, dynamic>.from(e)))
           .toList();
     }
     return DebtTransaction(
       id: map['id']?.toString() ?? '',
       title: map['title'] ?? '',
-      amount: double.tryParse(map['amount']?.toString() ?? '0') ?? 0.0,
+      amount: double.tryParse(map['amount']?.toString() ?? map['amount']?.toString() ?? '0') ?? 0.0,
       categoryId: map['liability_category_id']?.toString() ?? map['category_id']?.toString() ?? '',
       date: map['date'] != null ? DateTime.parse(map['date']) : DateTime.now(),
       payments: paymentsList,
@@ -89,7 +106,7 @@ class DebtTransaction {
   }
 
   double get paidAmount {
-    return payments.fold(0.0, (sum, p) => sum + p.amount);
+    return payments.where((p) => p.type == 'pay').fold(0.0, (sum, p) => sum + p.amount);
   }
 
   double get remainingAmount {
