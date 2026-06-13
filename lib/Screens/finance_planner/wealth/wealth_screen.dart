@@ -5,6 +5,7 @@ import 'package:flutter_widgets/models/wealth_model.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_widgets/screens/finance_planner/wealth/asset_history_screen.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 class WealthScreen extends StatefulWidget {
   const WealthScreen({super.key});
@@ -26,7 +27,7 @@ class _WealthScreenState extends State<WealthScreen> {
   @override
   Widget build(BuildContext context) {
 
-    Widget buildSummaryItem(String label, double amount, Color color) {
+    Widget buildSummaryItem(String label, double amount, Color color, {bool isLoading = false}) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -35,10 +36,19 @@ class _WealthScreenState extends State<WealthScreen> {
             style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280)),
           ),
           const SizedBox(height: 4),
-          Text(
-            '৳${amount.toStringAsFixed(0)}',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: color),
-          ),
+          isLoading
+              ? SizedBox(
+                  height: 18,
+                  width: 35,
+                  child: SpinKitThreeBounce(
+                    color: color,
+                    size: 14.0,
+                  ),
+                )
+              : Text(
+                  '৳${amount.toStringAsFixed(0)}',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: color),
+                ),
         ],
       );
     }
@@ -93,7 +103,7 @@ class _WealthScreenState extends State<WealthScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    buildSummaryItem('Bank Balance', bankBalance, const Color(0xFF10B981)),
+                    buildSummaryItem('Bank Balance', bankBalance, const Color(0xFF10B981), isLoading: controller.isLoading.value),
                     const Text('+', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF6B7280))),
                     buildSummaryItem('Others Assets', othersAssets, const Color(0xFFF59E0B)),
                     const Text('=', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF6B7280))),

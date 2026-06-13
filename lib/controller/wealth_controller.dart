@@ -29,6 +29,7 @@ class WealthController extends GetxController {
   }
 
   Future<void> fetchAssetTrackerData() async {
+    isLoading.value = true;
     await fetchCategories();
     await fetchTransactions(isLoadMore: false);
   }
