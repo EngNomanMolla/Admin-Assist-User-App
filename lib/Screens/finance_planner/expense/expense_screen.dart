@@ -4,12 +4,26 @@ import 'package:flutter_widgets/controller/expense_controller.dart';
 import 'package:flutter_widgets/models/expense_model.dart';
 import 'package:intl/intl.dart';
 
-class ExpenseScreen extends StatelessWidget {
+class ExpenseScreen extends StatefulWidget {
   const ExpenseScreen({super.key});
 
   @override
+  State<ExpenseScreen> createState() => _ExpenseScreenState();
+}
+
+class _ExpenseScreenState extends State<ExpenseScreen> {
+  late final ExpenseController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.put(ExpenseController());
+    controller.fetchCategories();
+    controller.fetchTransactions();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final ExpenseController controller = Get.put(ExpenseController());
 
     return DefaultTabController(
       length: 2,
@@ -241,13 +255,13 @@ class ExpenseScreen extends StatelessWidget {
 
   Widget _buildTransactionList(ExpenseController controller) {
     return Obx(() {
+      if (controller.isLoading.value) {
+        return const Center(
+          child: CircularProgressIndicator(color: Color(0xFFEF4444)),
+        );
+      }
       final transactions = controller.filteredTransactions;
       if (transactions.isEmpty) {
-        if (controller.isLoading.value) {
-          return const Center(
-            child: CircularProgressIndicator(color: Color(0xFFEF4444)),
-          );
-        }
         return Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -410,6 +424,11 @@ class ExpenseScreen extends StatelessWidget {
         const SizedBox(height: 16),
         Expanded(
           child: Obx(() {
+            if (controller.isLoading.value) {
+              return const Center(
+                child: CircularProgressIndicator(color: Color(0xFFEF4444)),
+              );
+            }
             final categories = controller.categories;
             if (categories.isEmpty) {
               return Center(
@@ -1145,15 +1164,13 @@ class ExpenseScreen extends StatelessWidget {
         content: const Text('Are you sure you want to delete this transaction?'),
         actions: [
           TextButton(
-            onPressed: controller.isLoading.value ? null : () => Navigator.pop(context),
+            onPressed: controller.isLoading.value ? null : () => Get.back(),
             child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280))),
           ),
           ElevatedButton(
             onPressed: controller.isLoading.value ? null : () async {
-              final success = await controller.deleteTransaction(transactionId);
-              if (success && context.mounted) {
-                Navigator.pop(context);
-              }
+              Get.back();
+              await controller.deleteTransaction(transactionId);
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: controller.isLoading.value

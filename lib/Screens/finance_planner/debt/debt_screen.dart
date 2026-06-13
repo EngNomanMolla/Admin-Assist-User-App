@@ -7,14 +7,30 @@ import 'package:flutter_widgets/controller/income_controller.dart';
 import 'package:flutter_widgets/controller/expense_controller.dart';
 import 'package:flutter_widgets/screens/finance_planner/debt/debt_payment_history_screen.dart';
 
-class DebtScreen extends StatelessWidget {
+class DebtScreen extends StatefulWidget {
   const DebtScreen({super.key});
 
   @override
+  State<DebtScreen> createState() => _DebtScreenState();
+}
+
+class _DebtScreenState extends State<DebtScreen> {
+  late final DebtController controller;
+  late final IncomeController incomeController;
+  late final ExpenseController expenseController;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.put(DebtController());
+    incomeController = Get.put(IncomeController());
+    expenseController = Get.put(ExpenseController());
+    controller.fetchCategories();
+    controller.fetchTransactions();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final DebtController controller = Get.put(DebtController());
-    final IncomeController incomeController = Get.put(IncomeController());
-    final ExpenseController expenseController = Get.put(ExpenseController());
 
     Widget buildSummaryItem(String label, double amount, Color color) {
       return Column(
@@ -290,6 +306,13 @@ class DebtScreen extends StatelessWidget {
 
   Widget _buildTransactionList(DebtController controller) {
     return Obx(() {
+      if (controller.isLoading.value) {
+        return const Center(
+          child: CircularProgressIndicator(
+            color: Color(0xFFF59E0B),
+          ),
+        );
+      }
       final transactions = controller.filteredTransactions;
       if (transactions.isEmpty) {
         return Center(
@@ -467,6 +490,13 @@ class DebtScreen extends StatelessWidget {
         const SizedBox(height: 16),
         Expanded(
           child: Obx(() {
+            if (controller.isLoading.value) {
+              return const Center(
+                child: CircularProgressIndicator(
+                  color: Color(0xFFF59E0B),
+                ),
+              );
+            }
             final categories = controller.categories;
             if (categories.isEmpty) {
               return Center(
@@ -1347,15 +1377,13 @@ class DebtScreen extends StatelessWidget {
         content: const Text('Are you sure you want to delete this transaction?'),
         actions: [
           TextButton(
-            onPressed: controller.isLoading.value ? null : () => Navigator.pop(context),
+            onPressed: controller.isLoading.value ? null : () => Get.back(),
             child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280))),
           ),
           ElevatedButton(
             onPressed: controller.isLoading.value ? null : () async {
-              final success = await controller.deleteTransaction(transactionId);
-              if (success && context.mounted) {
-                Navigator.pop(context);
-              }
+              Get.back();
+              await controller.deleteTransaction(transactionId);
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: controller.isLoading.value

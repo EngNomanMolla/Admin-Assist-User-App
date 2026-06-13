@@ -4,12 +4,26 @@ import 'package:flutter_widgets/controller/income_controller.dart';
 import 'package:flutter_widgets/models/income_model.dart';
 import 'package:intl/intl.dart';
 
-class IncomeScreen extends StatelessWidget {
+class IncomeScreen extends StatefulWidget {
   const IncomeScreen({super.key});
 
   @override
+  State<IncomeScreen> createState() => _IncomeScreenState();
+}
+
+class _IncomeScreenState extends State<IncomeScreen> {
+  late final IncomeController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.put(IncomeController());
+    controller.fetchCategories();
+    controller.fetchTransactions();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final IncomeController controller = Get.put(IncomeController());
 
     return DefaultTabController(
       length: 2,
@@ -241,13 +255,13 @@ class IncomeScreen extends StatelessWidget {
 
   Widget _buildTransactionList(IncomeController controller) {
     return Obx(() {
+      if (controller.isLoading.value) {
+        return const Center(
+          child: CircularProgressIndicator(color: Color(0xFF10B981)),
+        );
+      }
       final transactions = controller.filteredTransactions;
       if (transactions.isEmpty) {
-        if (controller.isLoading.value) {
-          return const Center(
-            child: CircularProgressIndicator(color: Color(0xFF10B981)),
-          );
-        }
         return Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -410,6 +424,11 @@ class IncomeScreen extends StatelessWidget {
         const SizedBox(height: 16),
         Expanded(
           child: Obx(() {
+            if (controller.isLoading.value) {
+              return const Center(
+                child: CircularProgressIndicator(color: Color(0xFF10B981)),
+              );
+            }
             final categories = controller.categories;
             if (categories.isEmpty) {
               return Center(
@@ -1145,15 +1164,13 @@ class IncomeScreen extends StatelessWidget {
         content: const Text('Are you sure you want to delete this transaction?'),
         actions: [
           TextButton(
-            onPressed: controller.isLoading.value ? null : () => Navigator.pop(context),
+            onPressed: controller.isLoading.value ? null : () => Get.back(),
             child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280))),
           ),
           ElevatedButton(
             onPressed: controller.isLoading.value ? null : () async {
-              final success = await controller.deleteTransaction(transactionId);
-              if (success && context.mounted) {
-                Navigator.pop(context);
-              }
+              Get.back();
+              await controller.deleteTransaction(transactionId);
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: controller.isLoading.value

@@ -6,12 +6,25 @@ import 'package:intl/intl.dart';
 import 'package:flutter_widgets/screens/finance_planner/wealth/asset_history_screen.dart';
 import 'package:shimmer/shimmer.dart';
 
-class WealthScreen extends StatelessWidget {
+class WealthScreen extends StatefulWidget {
   const WealthScreen({super.key});
 
   @override
+  State<WealthScreen> createState() => _WealthScreenState();
+}
+
+class _WealthScreenState extends State<WealthScreen> {
+  late final WealthController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.put(WealthController());
+    controller.fetchAssetTrackerData();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final WealthController controller = Get.put(WealthController());
 
     Widget buildSummaryItem(String label, double amount, Color color) {
       return Column(
@@ -286,10 +299,10 @@ class WealthScreen extends StatelessWidget {
 
   Widget _buildTransactionList(WealthController controller) {
     return Obx(() {
-      final transactions = controller.filteredTransactions;
-      if (controller.isLoading.value && transactions.isEmpty) {
+      if (controller.isLoading.value) {
         return _buildShimmerList();
       }
+      final transactions = controller.filteredTransactions;
       if (transactions.isEmpty) {
         return Center(
           child: Column(
@@ -469,6 +482,11 @@ class WealthScreen extends StatelessWidget {
         const SizedBox(height: 16),
         Expanded(
           child: Obx(() {
+            if (controller.isLoading.value) {
+              return const Center(
+                child: CircularProgressIndicator(color: Color(0xFF7B39FD)),
+              );
+            }
             final categories = controller.categories;
             if (categories.isEmpty) {
               return Center(
@@ -1043,17 +1061,15 @@ class WealthScreen extends StatelessWidget {
           content: const Text('Are you sure you want to delete this transaction?'),
           actions: [
             TextButton(
-              onPressed: isLoading ? null : () => Navigator.pop(context),
+              onPressed: isLoading ? null : () => Get.back(),
               child: const Text('Cancel', style: TextStyle(color: Color(0xFF6B7280))),
             ),
             ElevatedButton(
               onPressed: isLoading
                   ? null
                   : () async {
-                      final success = await controller.deleteTransaction(transactionId);
-                      if (success && context.mounted) {
-                        Navigator.pop(context);
-                      }
+                      Get.back();
+                      await controller.deleteTransaction(transactionId);
                     },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               child: isLoading
